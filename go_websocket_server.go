@@ -63,8 +63,8 @@ func main() {
 	router.HandleFunc("/ws", live_wsHandler)
 
 	// History page /aka history_dashboard
-	// router.HandleFunc("/history", historyHandler)
-	// router.HandleFunc("/history/ws", history_wsHandler)
+	router.HandleFunc("/history", historyHandler)
+	router.HandleFunc("/history/ws", history_wsHandler)
 
 	// Live time page /aka time_dashboard
 	router.HandleFunc("/time", timeHandler)
@@ -104,13 +104,14 @@ func live_wsHandler(w http.ResponseWriter, r *http.Request) {
 // History Websocket handler, when our javascriot file, which is served along with our html file from our
 // root handler, runs it makes a websocket connection to ws://localhost:8080/history/ws which triggers our hsHandler with the trailing /ws.
 // We then start our history_udp_client that listens for and formats the incoming UDP data from F1 2018 then writes the packets to our websocket
-// func history_wsHandler(w http.ResponseWriter, r *http.Request) {
-// 	conn, err := upgrader.Upgrade(w, r, nil)
-// 	if err != nil {
-// 		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
-// 	}
-// 	go history_udp_client(conn, sock)
-// }
+func history_wsHandler(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Print("upgrade:", err)
+		return
+	}
+	go history_udp_client(conn, sock)
+}
 
 // Live time Websocket handler, when our javascriot file, which is served along with our html file from our
 // root handler, runs it makes a websocket connection to ws://localhost:8080/time/ws which triggers our hsHandler with the trailing /ws.
@@ -221,10 +222,53 @@ func live_data_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
 	}
 }
 
-// func history_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
-//   addr, _ := net.ResolveUDPAddr("udp", ":5003")
-//   sock, _ := net.ListenUDP("udp", addr)
-// }
+func history_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
+  defer conn.Close()
+
+	for {
+    // Create a buffer to read the incoming udp packets
+    // Read the udp packets and if we get an error while reading, print out the error
+    buf := make([]byte, 1341)
+    _, _, err := sock.ReadFromUDP(buf)
+    if err != nil {
+      fmt.Println(err)
+    }
+
+    // Set two new readers in which to cast into our structs.
+    // One is for the header, which we determine what packet we have and then use the other
+    // for the whole packet.
+    header_bytes_reader := bytes.NewReader(buf[0:21])
+    packet_bytes_reader := bytes.NewReader(buf)
+
+    // Read the binary of the udp packet header into our struct
+    if err := binary.Read(header_bytes_reader, binary.LittleEndian, &header); err != nil {
+		    fmt.Println("binary.Read header failed:", err)
+  	}
+
+		// Depending on which packet we have, which we find by looking at header.M_packetId
+    // We use a switch statement to then read the whole binary udp packet into its associated struct
+    switch header.M_packetId {
+    case 1:
+        // If the packet we received is the session_packet, read its binary into our session_packet struct
+        if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &session_packet); err != nil {
+    		    fmt.Println("binary.Read session_packet failed:", err)
+      	}
+				// Convert out struct into JSON format
+        json_session_packet, err := json.Marshal(session_packet)
+        if err != nil {
+          fmt.Println(err)
+        }
+				// Write our JSON formatted F1 UDP packet struct to our websocket
+        if err := conn.WriteMessage(websocket.TextMessage, json_session_packet); err != nil {
+    			log.Printf("Websocket error writing session_packet: %s", err)
+					return
+    		}
+				break
+		default:
+				break
+    }
+	}
+}
 
 func time_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
 	defer conn.Close()
