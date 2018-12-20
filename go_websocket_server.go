@@ -76,17 +76,17 @@ func main() {
 // liveHandler is called when our browser goes to the page localhost:8080, this serves up our html file along
 // with its corresponding javascript and css files
 func liveHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "web/live_dashboard.html")
+	http.ServeFile(w, r, "./web/live_dashboard.html")
 }
 
 // Called when at the page localhost:8080/history
 func historyHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "web/history_dashboard.html")
+	http.ServeFile(w, r, "./web/history_dashboard.html")
 }
 
 // Called when at the page localhost:8080/time
 func timeHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "web/live_dashboard.html")
+	http.ServeFile(w, r, "./web/live_dashboard.html")
 }
 
 // Live data Websocket handler, when our javascriot file, which is served along with our html file from our
