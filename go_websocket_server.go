@@ -55,7 +55,7 @@ func main() {
 	router := mux.NewRouter()
 	// WHen our html page calls its static files from /static/file, this sets the location to grab them from
 	// TODO: Is this all this code needed? Couldn't we just set it web/?
-        router.PathPrefix("/web/").Handler(http.StripPrefix(/web/", http.FileServer(http.Dir(dir))))
+        router.PathPrefix("/web/").Handler(http.StripPrefix("/web/", http.FileServer(http.Dir(dir))))
 
 	// Our handler functions for each page
 	// Landing page /aka live telemetry or telemetry_dashboard
