@@ -42,7 +42,7 @@ var car_status_packet structs.PacketCarStatusData
 // Since this is not on any specific ip address, if closed we can reopen on the same port again.
 // To get over this hurdle, we brought the socket out to only declare once, and can be called by
 // each of our websocket handlers to grab packets from the game
-var addrs, _ = net.ResolveUDPAddr("udp", ":5003")
+var addrs, _ = net.ResolveUDPAddr("udp", ":20777")
 var sock, err = net.ListenUDP("udp", addrs)
 
 func main() {
