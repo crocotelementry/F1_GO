@@ -48,7 +48,7 @@ var sock, err = net.ListenUDP("udp", addrs)
 func main() {
 	// Sets the location in which to serve our static files from for our webpage
 	var dir string
-	flag.StringVar(&dir, "dir", "./static", "the directory to serve files from. Defaults to the current dir")
+	flag.StringVar(&dir, "dir", "./web", "the directory to serve files from. Defaults to the current dir")
 	flag.Parse()
 
 	// Creates a new mux
