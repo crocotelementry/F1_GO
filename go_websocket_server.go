@@ -86,7 +86,7 @@ func historyHandler(w http.ResponseWriter, r *http.Request) {
 
 // Called when at the page localhost:8080/time
 func timeHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./web/live_dashboard.html")
+	http.ServeFile(w, r, "./web/time_dashboard.html")
 }
 
 // Live data Websocket handler, when our javascriot file, which is served along with our html file from our
