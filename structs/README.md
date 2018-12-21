@@ -375,7 +375,7 @@ struct PacketCarStatusData
 1             M_playerCarIndex  uint8   // Index of player's car in the array
           }
 
-Total: 21
+Total: 20
 ```
 
 ## MOTION PACKET
