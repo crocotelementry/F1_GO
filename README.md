@@ -48,3 +48,11 @@ For gorilla/mux:
 ```
 $ go get github.com/gorilla/mux
 ```
+
+Finally, since we are using a Redis database for our short term storage, we need get redis. We are using redigo.
+
+To do this:
+
+```
+$ go get github.com/gomodule/redigo/redis
+```
