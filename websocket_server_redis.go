@@ -3,7 +3,6 @@
 // Websocket server written in Golang to serve our pages with udp_data from F1 2018
 //
 //
-//
 // Author: Kristian Nilssen, Seattle
 
 package main
@@ -17,12 +16,11 @@ import (
 	"log"
 	"net"
 	"net/http"
-	// "unicode/utf8"
 
 	"F1_GO/structs"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	// "github.com/gomodule/redigo"
+  "github.com/gomodule/redigo/redis"
 )
 
 // Set the location for the webpages to be served to.
@@ -57,19 +55,24 @@ var addrs, _ = net.ResolveUDPAddr("udp", ":20777")
 var sock, err = net.ListenUDP("udp", addrs)
 
 // Create the channels for each of the packet types
-var motion_packet_channel = make(chan structs.PacketMotionData)
-var session_packet_channel = make(chan structs.PacketSessionData)
-var lap_packet_channel = make(chan structs.PacketLapData)
-var event_packet_channel = make(chan structs.PacketEventData)
-var participant_packet_channel = make(chan structs.PacketParticipantsData)
-var car_setup_packet_channel = make(chan structs.PacketCarSetupData)
-var telemetry_packet_channel = make(chan structs.PacketCarTelemetryData)
-var car_status_packet_channel = make(chan structs.PacketCarStatusData)
+var motion_packet_channel       = make(chan structs.PacketMotionData)
+var session_packet_channel      = make(chan structs.PacketSessionData)
+var lap_packet_channel          = make(chan structs.PacketLapData)
+var event_packet_channel        = make(chan structs.PacketEventData)
+var participant_packet_channel  = make(chan structs.PacketParticipantsData)
+var car_setup_packet_channel    = make(chan structs.PacketCarSetupData)
+var telemetry_packet_channel    = make(chan structs.PacketCarTelemetryData)
+var car_status_packet_channel   = make(chan structs.PacketCarStatusData)
+
+// Create two variables, one for the code when a session starts and one for when a session ends
+var session_start_code 	= [4]uint8{83, 69, 78, 68}
+var session_end_code		= [4]uint8{83, 83, 84, 65}
+
 
 func main() {
-	// Now run our f1 2018 udp telemetry packets and save them to a temporary database
-	// Do this in a Go routine
-	go f1_2018_udp_client()
+  // Now run our f1 2018 udp telemetry packets and save them to a temporary database
+  // Do this in a Go routine
+  go f1_2018_udp_client()
 
 	// Sets the location in which to serve our static files from for our webpage
 	var dir string
@@ -98,100 +101,207 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
-// Listnes for the udp stream from the F1 2018 game and saves the data to a temporary redis database(Not written yet) and then
-// sends the data over channels to our websocket handlers 
-func f1_2018_udp_client() {
-	// Print to the terminal window showing that the udp client is indeed up and working
-	fmt.Println("F1 2018 UDP Client running...")
-	for {
-		buf := make([]byte, 1341)
-		_, _, err := sock.ReadFromUDP(buf)
-		if err != nil {
-			fmt.Println("readfromudp error::: ", err)
-		}
+//
+func f1_2018_udp_client(){
+  // Print to the terminal window showing that the udp client is indeed up and working
+  fmt.Println("F1 2018 UDP Client running...\n")
 
-		// Set a new reader which we will use to cast into our structs.
-		// This reader is for the header, which we determine what packet we have and what index our users car is in.
-		// Bytes 3 in the udp packet will be the packet number and byte 20 will be the index of the users car.
-		header_bytes_reader := bytes.NewReader([]byte{buf[3], buf[20]})
-		packet_bytes_reader := bytes.NewReader(buf)
+	// newPool returns a pointer to a redis.Pool
+	redis_pool := newPool()
+	// get a connection from the pool (redis.Conn)
+	redis_conn := redis_pool.Get()
+	// use defer to close the connection when the function completes
+	defer redis_conn.Close()
 
-		// Read the binary of the udp packet header into our struct
-		if err := binary.Read(header_bytes_reader, binary.LittleEndian, &Efficient_header); err != nil {
-			fmt.Println("binary.Read header failed:", err)
-		}
-
-		// Depending on which packet we have, which we find by looking at header.M_packetId
-		// We use a switch statement to then read the whole binary udp packet into its associated struct
-		switch Efficient_header.M_packetId {
-		case 0:
-			// If the packet we received is a motion_packet, read its binary into our motion_packet struct
-			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &motion_packet); err != nil {
-				fmt.Println("binary.Read motion_packet failed:", err)
-			}
-			// Send the newly found motion packet over our motion packet channel so our websocket handlers can receive it and send it over our websocket
-			motion_packet_channel <- motion_packet
-			break
-		case 1:
-			// If the packet we received is the session_packet, read its binary into our session_packet struct
-			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &session_packet); err != nil {
-				fmt.Println("binary.Read session_packet failed:", err)
-			}
-			// Send the newly found session packet over our session packet channel so our websocket handlers can receive it and send it over our websocket
-			session_packet_channel <- session_packet
-			break
-		case 2:
-			// If the packet we received is the lap_packet, read its binary into our lap_packet struct
-			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &lap_packet); err != nil {
-				fmt.Println("binary.Read lap_packet failed:", err)
-			}
-			// Send the newly found lap packet over our lap packet channel so our websocket handlers can receive it and send it over our websocket
-			lap_packet_channel <- lap_packet
-			break
-		case 3:
-			// If the packet we received is the event_packet, read its binary into our event_packet struct
-			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &event_packet); err != nil {
-				fmt.Println("binary.Read event_packet failed:", err)
-			}
-			// Send the newly found event packet over our event packet channel so our websocket handlers can receive it and send it over our websocket
-			event_packet_channel <- event_packet
-			break
-		case 4:
-			// If the packet we received is the participant_packet, read its binary into our participant_packet struct
-			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &participant_packet); err != nil {
-				fmt.Println("binary.Read participant_packet failed:", err)
-			}
-			// Send the newly found participant packet over our participant packet channel so our websocket handlers can receive it and send it over our websocket
-			participant_packet_channel <- participant_packet
-			break
-		case 5:
-			// If the packet we received is the car_setup_packet, read its binary into our car_setup_packet struct
-			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &car_setup_packet); err != nil {
-				fmt.Println("binary.Read car_setup_packet failed:", err)
-			}
-			// Send the newly found car_setup packet over our car_setup packet channel so our websocket handlers can receive it and send it over our websocket
-			car_setup_packet_channel <- car_setup_packet
-			break
-		case 6:
-			// If the packet we received is the telemetry_packet, read its binary into our telemetry_packet struct
-			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &telemetry_packet); err != nil {
-				fmt.Println("binary.Read telemetry_packet failed:", err)
-			}
-			// Send the newly found telemetry packet over our telemetry packet channel so our websocket handlers can receive it and send it over our websocket
-			telemetry_packet_channel <- telemetry_packet
-			break
-		case 7:
-			// If the packet we received is the car_status_packet, read its binary into our car_status_packet struct
-			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &car_status_packet); err != nil {
-				fmt.Println("binary.Read car_status_packet failed:", err)
-			}
-			// Send the newly found car_status packet over our car_status packet channel so our websocket handlers can receive it and send it over our websocket
-			car_status_packet_channel <- car_status_packet
-			break
-		default:
-			break
-		}
+	// call Redis PING command to test connectivity
+	err := ping(redis_conn)
+	if err != nil {
+		fmt.Println("Problem with connection to Redis database", err)
 	}
+
+
+  for {
+    buf := make([]byte, 1341)
+    _, _, err := sock.ReadFromUDP(buf)
+    if err != nil {
+      fmt.Println("readfromudp error::: ", err)
+    }
+
+    // Set a new reader which we will use to cast into our structs.
+    // This reader is for the header, which we determine what packet we have and what index our users car is in.
+    // Bytes 3 in the udp packet will be the packet number and byte 20 will be the index of the users car.
+    header_bytes_reader := bytes.NewReader([]byte{buf[3], buf[20]})
+    packet_bytes_reader := bytes.NewReader(buf)
+
+    // Read the binary of the udp packet header into our struct
+    if err := binary.Read(header_bytes_reader, binary.LittleEndian, &Efficient_header); err != nil {
+      fmt.Println("binary.Read header failed:", err)
+    }
+
+    // Depending on which packet we have, which we find by looking at header.M_packetId
+    // We use a switch statement to then read the whole binary udp packet into its associated struct
+    switch Efficient_header.M_packetId {
+    case 0:
+      // If the packet we received is a motion_packet, read its binary into our motion_packet struct
+      if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &motion_packet); err != nil {
+  		    fmt.Println("binary.Read motion_packet failed:", err)
+    	}
+      // Send the newly found motion packet over our motion packet channel so our websocket handlers can receive it and send it over our websocket
+      motion_packet_channel <- motion_packet
+			//
+			// const objectPrefix string = "motion_packet:"
+			//
+			// // serialize motion_packet object to JSON
+			// json, err := json.Marshal(motion_packet)
+			// if err != nil {
+			// 	return err
+			// }
+			//
+			// // SET object
+			// _, err = c.Do("SET", objectPrefix+usr.Username, json)
+			// if err != nil {
+			// 	return err
+			// }
+
+      break
+    case 1:
+      // If the packet we received is the session_packet, read its binary into our session_packet struct
+      if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &session_packet); err != nil {
+          fmt.Println("binary.Read session_packet failed:", err)
+      }
+      // Send the newly found session packet over our session packet channel so our websocket handlers can receive it and send it over our websocket
+      session_packet_channel <- session_packet
+      break
+    case 2:
+      // If the packet we received is the lap_packet, read its binary into our lap_packet struct
+      if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &lap_packet); err != nil {
+          fmt.Println("binary.Read lap_packet failed:", err)
+      }
+      // Send the newly found lap packet over our lap packet channel so our websocket handlers can receive it and send it over our websocket
+      lap_packet_channel <- lap_packet
+      break
+    case 3:
+      // If the packet we received is the event_packet, read its binary into our event_packet struct
+      if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &event_packet); err != nil {
+          fmt.Println("binary.Read event_packet failed:", err)
+      }
+
+			if event_packet.M_eventStringCode == session_start_code {
+				number_of_sessions_exists_integer_reply, err := redis_conn.Do("EXISTS", "number_of_sessions")
+				if err != nil {
+					fmt.Println("Checking if number_of_sessions exists failed:", err)
+				}
+				if number_of_sessions_exists_integer_reply == 1 {
+					// If number_of_sessions exists
+					if _, err := redis_conn.Do("INCR", "number_of_sessions"); err != nil {
+						fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
+					}
+				} else {
+					// If number_of_sessions doesnt exist
+					if _, err := redis_conn.Do("SET", "number_of_sessions", "1"); err != nil {
+						fmt.Println("Setting number_of_sessions to 1 failed:", err)
+					}
+				}
+
+
+				session_UIDs_exists_integer_reply, err := redis_conn.Do("EXISTS", "session_UIDs")
+				if err != nil {
+					fmt.Println("Checking if session_UIDs exists failed:", err)
+				}
+				if session_UIDs_exists_integer_reply == 1 {
+					// If number_of_sessions exists
+					session_UIDs_SADD_integer_reply, err := redis_conn.Do("SADD", "session_UIDs", (event_packet.M_header.M_sessionUID))
+					if err != nil {
+						fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
+					}
+
+					if session_UIDs_SADD_integer_reply == 0 {
+						fmt.Println("Session with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", event_packet.M_header.M_sessionUID)
+					}
+				} else {
+					// If number_of_sessions doesnt exist
+					if _, err := redis_conn.Do("SET", "session_UIDs", (event_packet.M_header.M_sessionUID)); err != nil {
+						fmt.Println("Setting number_of_sessions to 1 failed:", err)
+					}
+				}
+
+			}
+
+			fmt.Println("EVENT PACKET", event_packet)
+      // Send the newly found event packet over our event packet channel so our websocket handlers can receive it and send it over our websocket
+      event_packet_channel <- event_packet
+      break
+    case 4:
+      // If the packet we received is the participant_packet, read its binary into our participant_packet struct
+      if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &participant_packet); err != nil {
+          fmt.Println("binary.Read participant_packet failed:", err)
+      }
+      // Send the newly found participant packet over our participant packet channel so our websocket handlers can receive it and send it over our websocket
+      participant_packet_channel <- participant_packet
+      break
+    case 5:
+      // If the packet we received is the car_setup_packet, read its binary into our car_setup_packet struct
+      if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &car_setup_packet); err != nil {
+          fmt.Println("binary.Read car_setup_packet failed:", err)
+      }
+      // Send the newly found car_setup packet over our car_setup packet channel so our websocket handlers can receive it and send it over our websocket
+      car_setup_packet_channel <- car_setup_packet
+      break
+    case 6:
+      // If the packet we received is the telemetry_packet, read its binary into our telemetry_packet struct
+      if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &telemetry_packet); err != nil {
+          fmt.Println("binary.Read telemetry_packet failed:", err)
+      }
+      // Send the newly found telemetry packet over our telemetry packet channel so our websocket handlers can receive it and send it over our websocket
+      telemetry_packet_channel <- telemetry_packet
+      break
+    case 7:
+      // If the packet we received is the car_status_packet, read its binary into our car_status_packet struct
+      if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &car_status_packet); err != nil {
+          fmt.Println("binary.Read car_status_packet failed:", err)
+      }
+      // Send the newly found car_status packet over our car_status packet channel so our websocket handlers can receive it and send it over our websocket
+      car_status_packet_channel <- car_status_packet
+      break
+    default:
+      break
+    }
+  }
+}
+
+// To establish connectivity in redigo, you need to create a redis.Pool object which is a pool of connections to Redis.
+func newPool() *redis.Pool {
+	return &redis.Pool{
+		// Maximum number of idle connections in the pool.
+		MaxIdle: 80,
+		// max number of connections
+		MaxActive: 12000,
+		// Dial is an application supplied function for creating and
+		// configuring a connection.
+		Dial: func() (redis.Conn, error) {
+			c, err := redis.Dial("tcp", ":6379")
+			if err != nil {
+				panic(err.Error())
+			}
+			return c, err
+		},
+	}
+}
+
+// ping tests connectivity for redis (PONG should be returned)
+func ping(c redis.Conn) error {
+	// Send PING command to Redis
+	// PING command returns a Redis "Simple String"
+	// Use redis.String to convert the interface type to string
+	s, err := redis.String(c.Do("PING"))
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("PING Response = ", s)
+	fmt.Println("Successful connection made with Redis database!\n")
+	// Output: PONG
+	return nil
 }
 
 // liveHandler is called when our browser goes to the page localhost:8080, this serves up our html file along
@@ -258,117 +368,117 @@ func live_data_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
 	defer conn.Close()
 
 	for {
-		select {
-		case motion_packet_channel_msg := <-motion_packet_channel:
-			// fmt.Println("motion_packet_channel_msg recieved!")
+    select {
+    case motion_packet_channel_msg := <-motion_packet_channel:
+      // fmt.Println("motion_packet_channel_msg recieved!")
 
-			json_motion_packet, err := json.Marshal(motion_packet_channel_msg)
-			if err != nil {
-				fmt.Println(err)
-			}
-			// Write our JSON formatted F1 UDP packet struct to our websocket
-			if err := conn.WriteMessage(websocket.TextMessage, json_motion_packet); err != nil {
-				log.Printf("Websocket error writing json_motion_packet: %s", err)
-				return
-			}
-			break
-		case session_packet_channel_msg := <-session_packet_channel:
-			// fmt.Println("session_packet_channel_msg recieved!")
+      json_motion_packet, err := json.Marshal(motion_packet_channel_msg)
+      if err != nil {
+        fmt.Println(err)
+      }
+      // Write our JSON formatted F1 UDP packet struct to our websocket
+      if err := conn.WriteMessage(websocket.TextMessage, json_motion_packet); err != nil {
+        log.Printf("Websocket error writing json_motion_packet: %s", err)
+        return
+      }
+      break
+    case session_packet_channel_msg := <-session_packet_channel:
+      // fmt.Println("session_packet_channel_msg recieved!")
 
-			json_session_packet, err := json.Marshal(session_packet_channel_msg)
-			if err != nil {
-				fmt.Println(err)
-			}
-			// Write our JSON formatted F1 UDP packet struct to our websocket
-			if err := conn.WriteMessage(websocket.TextMessage, json_session_packet); err != nil {
-				log.Printf("Websocket error writing json_session_packet: %s", err)
-				return
-			}
-			break
-		case lap_packet_channel_msg := <-lap_packet_channel:
-			// fmt.Println("lap_packet_channel_msg recieved!")
+      json_session_packet, err := json.Marshal(session_packet_channel_msg)
+      if err != nil {
+        fmt.Println(err)
+      }
+      // Write our JSON formatted F1 UDP packet struct to our websocket
+      if err := conn.WriteMessage(websocket.TextMessage, json_session_packet); err != nil {
+        log.Printf("Websocket error writing json_session_packet: %s", err)
+        return
+      }
+      break
+    case lap_packet_channel_msg := <-lap_packet_channel:
+      // fmt.Println("lap_packet_channel_msg recieved!")
 
-			json_lap_packet, err := json.Marshal(lap_packet_channel_msg)
-			if err != nil {
-				fmt.Println(err)
-			}
-			// Write our JSON formatted F1 UDP packet struct to our websocket
-			if err := conn.WriteMessage(websocket.TextMessage, json_lap_packet); err != nil {
-				log.Printf("Websocket error writing json_lap_packet: %s", err)
-				return
-			}
-			break
-		case event_packet_channel_msg := <-event_packet_channel:
-			// fmt.Println("event_packet_channel_msg recieved!")
+      json_lap_packet, err := json.Marshal(lap_packet_channel_msg)
+      if err != nil {
+        fmt.Println(err)
+      }
+      // Write our JSON formatted F1 UDP packet struct to our websocket
+      if err := conn.WriteMessage(websocket.TextMessage, json_lap_packet); err != nil {
+        log.Printf("Websocket error writing json_lap_packet: %s", err)
+        return
+      }
+      break
+    case event_packet_channel_msg := <-event_packet_channel:
+      // fmt.Println("event_packet_channel_msg recieved!")
 
-			json_event_packet, err := json.Marshal(event_packet_channel_msg)
-			if err != nil {
-				fmt.Println(err)
-			}
-			// Write our JSON formatted F1 UDP packet struct to our websocket
-			if err := conn.WriteMessage(websocket.TextMessage, json_event_packet); err != nil {
-				log.Printf("Websocket error writing json_event_packet: %s", err)
-				return
-			}
-			break
-		case participant_packet_channel_msg := <-participant_packet_channel:
-			// fmt.Println("participant_packet_channel_msg recieved!")
-			// fmt.Println(participant_packet_channel_msg)
+      json_event_packet, err := json.Marshal(event_packet_channel_msg)
+      if err != nil {
+        fmt.Println(err)
+      }
+      // Write our JSON formatted F1 UDP packet struct to our websocket
+      if err := conn.WriteMessage(websocket.TextMessage, json_event_packet); err != nil {
+        log.Printf("Websocket error writing json_event_packet: %s", err)
+        return
+      }
+      break
+    case participant_packet_channel_msg := <-participant_packet_channel:
+      // fmt.Println("participant_packet_channel_msg recieved!")
+      // fmt.Println(participant_packet_channel_msg)
 
-			// for _, element := range participant_packet_channel_msg.M_participants {
-			//   fmt.Println(string(element.M_name[:]))
-			// }
+      // for _, element := range participant_packet_channel_msg.M_participants {
+      //   fmt.Println(string(element.M_name[:]))
+      // }
 
-			json_participant_packet, err := json.Marshal(participant_packet_channel_msg)
-			if err != nil {
-				fmt.Println(err)
-			}
-			// Write our JSON formatted F1 UDP packet struct to our websocket
-			if err := conn.WriteMessage(websocket.TextMessage, json_participant_packet); err != nil {
-				log.Printf("Websocket error writing json_participant_packet: %s", err)
-				return
-			}
-			break
-		case car_setup_packet_channel_msg := <-car_setup_packet_channel:
-			// fmt.Println("car_setup_packet_channel_msg recieved!")
+      json_participant_packet, err := json.Marshal(participant_packet_channel_msg)
+      if err != nil {
+        fmt.Println(err)
+      }
+      // Write our JSON formatted F1 UDP packet struct to our websocket
+      if err := conn.WriteMessage(websocket.TextMessage, json_participant_packet); err != nil {
+        log.Printf("Websocket error writing json_participant_packet: %s", err)
+        return
+      }
+      break
+    case car_setup_packet_channel_msg := <-car_setup_packet_channel:
+      // fmt.Println("car_setup_packet_channel_msg recieved!")
 
-			json_car_setup_packet, err := json.Marshal(car_setup_packet_channel_msg)
-			if err != nil {
-				fmt.Println(err)
-			}
-			// Write our JSON formatted F1 UDP packet struct to our websocket
-			if err := conn.WriteMessage(websocket.TextMessage, json_car_setup_packet); err != nil {
-				log.Printf("Websocket error writing json_car_setup_packet: %s", err)
-				return
-			}
-			break
-		case telemetry_packet_channel_msg := <-telemetry_packet_channel:
-			// fmt.Println("telemetry_packet_channel_msg recieved!")
+      json_car_setup_packet, err := json.Marshal(car_setup_packet_channel_msg)
+      if err != nil {
+        fmt.Println(err)
+      }
+      // Write our JSON formatted F1 UDP packet struct to our websocket
+      if err := conn.WriteMessage(websocket.TextMessage, json_car_setup_packet); err != nil {
+        log.Printf("Websocket error writing json_car_setup_packet: %s", err)
+        return
+      }
+      break
+    case telemetry_packet_channel_msg := <-telemetry_packet_channel:
+      // fmt.Println("telemetry_packet_channel_msg recieved!")
 
-			json_telemetry_packet, err := json.Marshal(telemetry_packet_channel_msg)
-			if err != nil {
-				fmt.Println(err)
-			}
-			// Write our JSON formatted F1 UDP packet struct to our websocket
-			if err := conn.WriteMessage(websocket.TextMessage, json_telemetry_packet); err != nil {
-				log.Printf("Websocket error writing json_telemetry_packet: %s", err)
-				return
-			}
-			break
-		case car_status_packet_channel_msg := <-car_status_packet_channel:
-			// fmt.Println("car_status_packet_channel_msg recieved!")
+      json_telemetry_packet, err := json.Marshal(telemetry_packet_channel_msg)
+      if err != nil {
+        fmt.Println(err)
+      }
+      // Write our JSON formatted F1 UDP packet struct to our websocket
+      if err := conn.WriteMessage(websocket.TextMessage, json_telemetry_packet); err != nil {
+        log.Printf("Websocket error writing json_telemetry_packet: %s", err)
+        return
+      }
+      break
+    case car_status_packet_channel_msg := <-car_status_packet_channel:
+      // fmt.Println("car_status_packet_channel_msg recieved!")
 
-			json_car_status_packet, err := json.Marshal(car_status_packet_channel_msg)
-			if err != nil {
-				fmt.Println(err)
-			}
-			// Write our JSON formatted F1 UDP packet struct to our websocket
-			if err := conn.WriteMessage(websocket.TextMessage, json_car_status_packet); err != nil {
-				log.Printf("Websocket error writing json_car_status_packet: %s", err)
-				return
-			}
-			break
-		}
+      json_car_status_packet, err := json.Marshal(car_status_packet_channel_msg)
+      if err != nil {
+        fmt.Println(err)
+      }
+      // Write our JSON formatted F1 UDP packet struct to our websocket
+      if err := conn.WriteMessage(websocket.TextMessage, json_car_status_packet); err != nil {
+        log.Printf("Websocket error writing json_car_status_packet: %s", err)
+        return
+      }
+      break
+    }
 	}
 
 }
