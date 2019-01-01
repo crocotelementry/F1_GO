@@ -118,6 +118,9 @@ func f1_2018_udp_client() {
 		fmt.Println("Problem with connection to Redis database", err)
 	}
 
+	// Redis database format:
+	// Session_uid:Frame_identifier:Packet_id
+
 	for {
 		buf := make([]byte, 1341)
 		_, _, err := sock.ReadFromUDP(buf)
@@ -128,17 +131,19 @@ func f1_2018_udp_client() {
 		// Set a new reader which we will use to cast into our structs.
 		// This reader is for the header, which we determine what packet we have and what index our users car is in.
 		// Bytes 3 in the udp packet will be the packet number and byte 20 will be the index of the users car.
-		header_bytes_reader := bytes.NewReader([]byte{buf[3], buf[20]})
+		header_bytes_reader := bytes.NewReader(buf[0:21])
 		packet_bytes_reader := bytes.NewReader(buf)
 
 		// Read the binary of the udp packet header into our struct
-		if err := binary.Read(header_bytes_reader, binary.LittleEndian, &Efficient_header); err != nil {
+		if err := binary.Read(header_bytes_reader, binary.LittleEndian, &header); err != nil {
 			fmt.Println("binary.Read header failed:", err)
 		}
 
+		objectPrefix := strconv.Itoa(int(header.M_sessionUID)) + ":" + strconv.Itoa(int(header.M_frameIdentifier)) + ":"
+
 		// Depending on which packet we have, which we find by looking at header.M_packetId
 		// We use a switch statement to then read the whole binary udp packet into its associated struct
-		switch Efficient_header.M_packetId {
+		switch header.M_packetId {
 		case 0:
 			// If the packet we received is a motion_packet, read its binary into our motion_packet struct
 			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &motion_packet); err != nil {
@@ -146,20 +151,18 @@ func f1_2018_udp_client() {
 			}
 			// Send the newly found motion packet over our motion packet channel so our websocket handlers can receive it and send it over our websocket
 			motion_packet_channel <- motion_packet
-			//
-			// const objectPrefix string = "motion_packet:"
-			//
-			// // serialize motion_packet object to JSON
-			// json, err := json.Marshal(motion_packet)
-			// if err != nil {
-			// 	return err
-			// }
-			//
-			// // SET object
-			// _, err = c.Do("SET", objectPrefix+usr.Username, json)
-			// if err != nil {
-			// 	return err
-			// }
+
+			// Marshal the struct into json so we can save it in our redis database
+			json_motion_packet, err := json.Marshal(motion_packet)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+
+			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_motion_packet); err != nil {
+				fmt.Println("Setting packet json_motion_packet failed:", err)
+			}
 
 			break
 		case 1:
@@ -169,6 +172,19 @@ func f1_2018_udp_client() {
 			}
 			// Send the newly found session packet over our session packet channel so our websocket handlers can receive it and send it over our websocket
 			session_packet_channel <- session_packet
+
+			// Marshal the struct into json so we can save it in our redis database
+			json_session_packet, err := json.Marshal(session_packet)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+
+			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_session_packet); err != nil {
+				fmt.Println("Setting packet json_session_packet failed:", err)
+			}
+
 			break
 		case 2:
 			// If the packet we received is the lap_packet, read its binary into our lap_packet struct
@@ -177,6 +193,18 @@ func f1_2018_udp_client() {
 			}
 			// Send the newly found lap packet over our lap packet channel so our websocket handlers can receive it and send it over our websocket
 			lap_packet_channel <- lap_packet
+
+			json_lap_packet, err := json.Marshal(lap_packet)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+
+			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_lap_packet); err != nil {
+				fmt.Println("Setting packet json_lap_packet failed:", err)
+			}
+
 			break
 		case 3:
 			// If the packet we received is the event_packet, read its binary into our event_packet struct
@@ -235,6 +263,18 @@ func f1_2018_udp_client() {
 			}
 			// Send the newly found participant packet over our participant packet channel so our websocket handlers can receive it and send it over our websocket
 			participant_packet_channel <- participant_packet
+
+			json_participant_packet, err := json.Marshal(participant_packet)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+
+			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_participant_packet); err != nil {
+				fmt.Println("Setting packet json_participant_packet failed:", err)
+			}
+
 			break
 		case 5:
 			// If the packet we received is the car_setup_packet, read its binary into our car_setup_packet struct
@@ -243,6 +283,18 @@ func f1_2018_udp_client() {
 			}
 			// Send the newly found car_setup packet over our car_setup packet channel so our websocket handlers can receive it and send it over our websocket
 			car_setup_packet_channel <- car_setup_packet
+
+			json_car_setup_packet, err := json.Marshal(car_setup_packet)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+
+			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_car_setup_packet); err != nil {
+				fmt.Println("Setting packet json_car_setup_packet failed:", err)
+			}
+
 			break
 		case 6:
 			// If the packet we received is the telemetry_packet, read its binary into our telemetry_packet struct
@@ -251,6 +303,18 @@ func f1_2018_udp_client() {
 			}
 			// Send the newly found telemetry packet over our telemetry packet channel so our websocket handlers can receive it and send it over our websocket
 			telemetry_packet_channel <- telemetry_packet
+
+			json_telemetry_packet, err := json.Marshal(telemetry_packet)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+
+			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_telemetry_packet); err != nil {
+				fmt.Println("Setting packet json_telemetry_packet failed:", err)
+			}
+
 			break
 		case 7:
 			// If the packet we received is the car_status_packet, read its binary into our car_status_packet struct
@@ -259,6 +323,18 @@ func f1_2018_udp_client() {
 			}
 			// Send the newly found car_status packet over our car_status packet channel so our websocket handlers can receive it and send it over our websocket
 			car_status_packet_channel <- car_status_packet
+
+			json_car_status_packet, err := json.Marshal(car_status_packet)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+
+			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_car_status_packet); err != nil {
+				fmt.Println("Setting packet json_car_status_packet failed:", err)
+			}
+
 			break
 		default:
 			break
