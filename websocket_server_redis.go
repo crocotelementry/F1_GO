@@ -28,6 +28,12 @@ import (
 var addr = flag.String("addr", "localhost:8080", "http service address")
 var upgrader = websocket.Upgrader{} // use default options
 
+// Create a struct for our connection
+type Conn_struct struct {
+	Key        int
+	Connection *websocket.Conn
+}
+
 // Set up our structs including the header struct so we are able to determine which
 // udp packet is incoming and we can deal with it accordingly
 var header structs.PacketHeader
@@ -67,6 +73,13 @@ var car_status_packet_channel = make(chan structs.PacketCarStatusData)
 // Create two variables, one for the code when a session starts and one for when a session ends
 var session_start_code = [4]uint8{83, 69, 78, 68}
 var session_end_code = [4]uint8{83, 83, 84, 65}
+
+// Create a channel for conn_checker_sender and conn_delete_reciever
+var conn_add_sender = make(chan Conn_struct, 10)
+var conn_delete_sender = make(chan int, 10)
+
+// Keep track of the total number of connections
+var num_of_conn = 0
 
 func main() {
 	// Now run our f1 2018 udp telemetry packets and save them to a temporary database
@@ -118,6 +131,12 @@ func f1_2018_udp_client() {
 		fmt.Println("Problem with connection to Redis database", err)
 	}
 
+	// Create a map (dictionary) that will keep track of our conn's
+	conn_map := make(map[int]*websocket.Conn)
+
+	// Create a variable that will tell us if our conn_map has connections open
+	conn_in_conn_map := false
+
 	// Redis database format:
 	// Session_uid:Frame_identifier:Packet_id
 
@@ -143,6 +162,26 @@ func f1_2018_udp_client() {
 
 		// Depending on which packet we have, which we find by looking at header.M_packetId
 		// We use a switch statement to then read the whole binary udp packet into its associated struct
+
+		// fmt.Println("running")
+
+		// How we know if we have an open conn or not
+		// This helps us with not getting locked on our channel outputs to our connections
+		select {
+		case conn_add_reciever := <-conn_add_sender:
+			conn_map[conn_add_reciever.Key] = conn_add_reciever.Connection
+			conn_in_conn_map = true
+			fmt.Println("Connection opened!")
+		case conn_delete_reciever := <-conn_delete_sender:
+			delete(conn_map, conn_delete_reciever)
+			fmt.Println("Connection closed!")
+			if len(conn_map) == 0 {
+				conn_in_conn_map = false
+			}
+		default:
+			break
+		}
+
 		switch header.M_packetId {
 		case 0:
 			// If the packet we received is a motion_packet, read its binary into our motion_packet struct
@@ -150,7 +189,10 @@ func f1_2018_udp_client() {
 				fmt.Println("binary.Read motion_packet failed:", err)
 			}
 			// Send the newly found motion packet over our motion packet channel so our websocket handlers can receive it and send it over our websocket
-			motion_packet_channel <- motion_packet
+			// If we have no connections made, we need to skip this step since we will be blocking on the channel until one of our cennections can receive it
+			if conn_in_conn_map {
+				motion_packet_channel <- motion_packet
+			}
 
 			// Marshal the struct into json so we can save it in our redis database
 			json_motion_packet, err := json.Marshal(motion_packet)
@@ -158,7 +200,7 @@ func f1_2018_udp_client() {
 				fmt.Println(err)
 			}
 
-			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+			// fmt.Println(objectPrefix+strconv.Itoa(int(header.M_packetId)))
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_motion_packet); err != nil {
 				fmt.Println("Setting packet json_motion_packet failed:", err)
@@ -171,7 +213,10 @@ func f1_2018_udp_client() {
 				fmt.Println("binary.Read session_packet failed:", err)
 			}
 			// Send the newly found session packet over our session packet channel so our websocket handlers can receive it and send it over our websocket
-			session_packet_channel <- session_packet
+			// If we have no connections made, we need to skip this step since we will be blocking on the channel until one of our cennections can receive it
+			if conn_in_conn_map {
+				session_packet_channel <- session_packet
+			}
 
 			// Marshal the struct into json so we can save it in our redis database
 			json_session_packet, err := json.Marshal(session_packet)
@@ -179,7 +224,7 @@ func f1_2018_udp_client() {
 				fmt.Println(err)
 			}
 
-			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+			// fmt.Println(objectPrefix+strconv.Itoa(int(header.M_packetId)))
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_session_packet); err != nil {
 				fmt.Println("Setting packet json_session_packet failed:", err)
@@ -192,14 +237,17 @@ func f1_2018_udp_client() {
 				fmt.Println("binary.Read lap_packet failed:", err)
 			}
 			// Send the newly found lap packet over our lap packet channel so our websocket handlers can receive it and send it over our websocket
-			lap_packet_channel <- lap_packet
+			// If we have no connections made, we need to skip this step since we will be blocking on the channel until one of our cennections can receive it
+			if conn_in_conn_map {
+				lap_packet_channel <- lap_packet
+			}
 
 			json_lap_packet, err := json.Marshal(lap_packet)
 			if err != nil {
 				fmt.Println(err)
 			}
 
-			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+			// fmt.Println(objectPrefix+strconv.Itoa(int(header.M_packetId)))
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_lap_packet); err != nil {
 				fmt.Println("Setting packet json_lap_packet failed:", err)
@@ -254,7 +302,11 @@ func f1_2018_udp_client() {
 
 			fmt.Println("EVENT PACKET", event_packet)
 			// Send the newly found event packet over our event packet channel so our websocket handlers can receive it and send it over our websocket
-			event_packet_channel <- event_packet
+			// If we have no connections made, we need to skip this step since we will be blocking on the channel until one of our cennections can receive it
+			if conn_in_conn_map {
+				event_packet_channel <- event_packet
+			}
+
 			break
 		case 4:
 			// If the packet we received is the participant_packet, read its binary into our participant_packet struct
@@ -262,14 +314,17 @@ func f1_2018_udp_client() {
 				fmt.Println("binary.Read participant_packet failed:", err)
 			}
 			// Send the newly found participant packet over our participant packet channel so our websocket handlers can receive it and send it over our websocket
-			participant_packet_channel <- participant_packet
+			// If we have no connections made, we need to skip this step since we will be blocking on the channel until one of our cennections can receive it
+			if conn_in_conn_map {
+				participant_packet_channel <- participant_packet
+			}
 
 			json_participant_packet, err := json.Marshal(participant_packet)
 			if err != nil {
 				fmt.Println(err)
 			}
 
-			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+			// fmt.Println(objectPrefix+strconv.Itoa(int(header.M_packetId)))
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_participant_packet); err != nil {
 				fmt.Println("Setting packet json_participant_packet failed:", err)
@@ -282,14 +337,17 @@ func f1_2018_udp_client() {
 				fmt.Println("binary.Read car_setup_packet failed:", err)
 			}
 			// Send the newly found car_setup packet over our car_setup packet channel so our websocket handlers can receive it and send it over our websocket
-			car_setup_packet_channel <- car_setup_packet
+			// If we have no connections made, we need to skip this step since we will be blocking on the channel until one of our cennections can receive it
+			if conn_in_conn_map {
+				car_setup_packet_channel <- car_setup_packet
+			}
 
 			json_car_setup_packet, err := json.Marshal(car_setup_packet)
 			if err != nil {
 				fmt.Println(err)
 			}
 
-			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+			// fmt.Println(objectPrefix+strconv.Itoa(int(header.M_packetId)))
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_car_setup_packet); err != nil {
 				fmt.Println("Setting packet json_car_setup_packet failed:", err)
@@ -302,14 +360,17 @@ func f1_2018_udp_client() {
 				fmt.Println("binary.Read telemetry_packet failed:", err)
 			}
 			// Send the newly found telemetry packet over our telemetry packet channel so our websocket handlers can receive it and send it over our websocket
-			telemetry_packet_channel <- telemetry_packet
+			// If we have no connections made, we need to skip this step since we will be blocking on the channel until one of our cennections can receive it
+			if conn_in_conn_map {
+				telemetry_packet_channel <- telemetry_packet
+			}
 
 			json_telemetry_packet, err := json.Marshal(telemetry_packet)
 			if err != nil {
 				fmt.Println(err)
 			}
 
-			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+			// fmt.Println(objectPrefix+strconv.Itoa(int(header.M_packetId)))
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_telemetry_packet); err != nil {
 				fmt.Println("Setting packet json_telemetry_packet failed:", err)
@@ -322,14 +383,17 @@ func f1_2018_udp_client() {
 				fmt.Println("binary.Read car_status_packet failed:", err)
 			}
 			// Send the newly found car_status packet over our car_status packet channel so our websocket handlers can receive it and send it over our websocket
-			car_status_packet_channel <- car_status_packet
+			// If we have no connections made, we need to skip this step since we will be blocking on the channel until one of our cennections can receive it
+			if conn_in_conn_map {
+				car_status_packet_channel <- car_status_packet
+			}
 
 			json_car_status_packet, err := json.Marshal(car_status_packet)
 			if err != nil {
 				fmt.Println(err)
 			}
 
-			fmt.Println(objectPrefix + strconv.Itoa(int(header.M_packetId)))
+			// fmt.Println(objectPrefix+strconv.Itoa(int(header.M_packetId)))
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_car_status_packet); err != nil {
 				fmt.Println("Setting packet json_car_status_packet failed:", err)
@@ -377,6 +441,18 @@ func ping(c redis.Conn) error {
 	return nil
 }
 
+// Function that adds a count of our number of connections
+func num_of_conn_new_conn() {
+	num_of_conn += 1
+	fmt.Println("New connection made, incrementing num_of_conn by one. Current num_of_conn:", num_of_conn)
+}
+
+// FUnction that takes away a count of our number of connections
+func num_of_conn_conn_close() {
+	num_of_conn -= 1
+	fmt.Println("Conn closed with websocket, Decrementing num_of_conn by one connection. Current num_of_conn:", num_of_conn)
+}
+
 // liveHandler is called when our browser goes to the page localhost:8080, this serves up our html file along
 // with its corresponding javascript and css files
 func liveHandler(w http.ResponseWriter, r *http.Request) {
@@ -402,8 +478,15 @@ func live_wsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Print("upgrade:", err)
 		return
 	}
+
+	num_of_conn += 1
+
+	this_conn_data := Conn_struct{Key: num_of_conn, Connection: conn}
+
+	conn_add_sender <- this_conn_data
+
 	// Call our live_data_udp_client function in a gorutine, this will execute concurrently
-	go live_data_udp_client(conn, sock)
+	go live_data_udp_client(conn, sock, this_conn_data.Key)
 }
 
 // History Websocket handler, when our javascriot file, which is served along with our html file from our
@@ -428,17 +511,28 @@ func time_wsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Print("upgrade:", err)
 		return
 	}
+
+	num_of_conn += 1
+
+	this_conn_data := Conn_struct{Key: num_of_conn, Connection: conn}
+
+	conn_add_sender <- this_conn_data
+
 	// Call our time_udp_client function in a gorutine, this will execute concurrently
-	go time_udp_client(conn, sock)
+	go time_udp_client(conn, sock, this_conn_data.Key)
 }
 
 // Function that is called by our websocket handlers
 // This function gets packets from the F1 2018 game and casts the bytes into structs that are sent over our
 // websocket to our front end than then displays them.
-func live_data_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
+func live_data_udp_client(conn *websocket.Conn, sock *net.UDPConn, conn_number int) {
 	// Defer the closing of our websocket connection. By doing this, when we get an error connecting to the websocket, which is the result of it being closed
 	// by our client, we return which in turn will execute the conn.Close() which was defered from executing until the gorutine is over and retuned.
-	defer conn.Close()
+	defer func() {
+		conn.Close()
+		fmt.Println("conn closed live_dashboard print with conn_number:", conn_number)
+		conn_delete_sender <- conn_number
+	}()
 
 	for {
 		select {
@@ -451,7 +545,7 @@ func live_data_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := conn.WriteMessage(websocket.TextMessage, json_motion_packet); err != nil {
-				log.Printf("Websocket error writing json_motion_packet: %s", err)
+				log.Printf("Websocket", conn_number, " error writing json_motion_packet: %s", err)
 				return
 			}
 			break
@@ -464,7 +558,7 @@ func live_data_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := conn.WriteMessage(websocket.TextMessage, json_session_packet); err != nil {
-				log.Printf("Websocket error writing json_session_packet: %s", err)
+				log.Printf("Websocket", conn_number, " error writing json_session_packet: %s", err)
 				return
 			}
 			break
@@ -477,7 +571,7 @@ func live_data_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := conn.WriteMessage(websocket.TextMessage, json_lap_packet); err != nil {
-				log.Printf("Websocket error writing json_lap_packet: %s", err)
+				log.Printf("Websocket", conn_number, " error writing json_lap_packet: %s", err)
 				return
 			}
 			break
@@ -490,7 +584,7 @@ func live_data_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := conn.WriteMessage(websocket.TextMessage, json_event_packet); err != nil {
-				log.Printf("Websocket error writing json_event_packet: %s", err)
+				log.Printf("Websocket", conn_number, " error writing json_event_packet: %s", err)
 				return
 			}
 			break
@@ -508,7 +602,7 @@ func live_data_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := conn.WriteMessage(websocket.TextMessage, json_participant_packet); err != nil {
-				log.Printf("Websocket error writing json_participant_packet: %s", err)
+				log.Printf("Websocket", conn_number, " error writing json_participant_packet: %s", err)
 				return
 			}
 			break
@@ -521,7 +615,7 @@ func live_data_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := conn.WriteMessage(websocket.TextMessage, json_car_setup_packet); err != nil {
-				log.Printf("Websocket error writing json_car_setup_packet: %s", err)
+				log.Printf("Websocket", conn_number, " error writing json_car_setup_packet: %s", err)
 				return
 			}
 			break
@@ -534,7 +628,7 @@ func live_data_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := conn.WriteMessage(websocket.TextMessage, json_telemetry_packet); err != nil {
-				log.Printf("Websocket error writing json_telemetry_packet: %s", err)
+				log.Printf("Websocket ", conn_number, " error writing json_telemetry_packet: %s", err)
 				return
 			}
 			break
@@ -547,7 +641,13 @@ func live_data_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := conn.WriteMessage(websocket.TextMessage, json_car_status_packet); err != nil {
-				log.Printf("Websocket error writing json_car_status_packet: %s", err)
+				log.Printf("Websocket ", conn_number, " error writing json_car_status_packet: %s", err)
+				return
+			}
+			break
+		default:
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				fmt.Println("Ping failed on conn:", conn_number)
 				return
 			}
 			break
@@ -611,65 +711,129 @@ func history_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
 // Function that is called by our websocket handlers
 // This function gets packets from the F1 2018 game and casts the bytes into structs that are sent over our
 // websocket to our front end than then displays them.
-func time_udp_client(conn *websocket.Conn, sock *net.UDPConn) {
+func time_udp_client(conn *websocket.Conn, sock *net.UDPConn, conn_number int) {
 	// Defer the closing of our websocket connection. By doing this, when we get an error connecting to the websocket, which is the result of it being closed
 	// by our client, we return which in turn will execute the conn.Close() which was defered from executing until the gorutine is over and retuned.
-	defer conn.Close()
+	defer func() {
+		conn.Close()
+		fmt.Println("conn closed time print with conn_number:", conn_number)
+		conn_delete_sender <- conn_number
+	}()
 
 	for {
-		// Create a buffer to read the incoming udp packets
-		// Read the udp packets and if we get an error while reading, print out the error
-		buf := make([]byte, 1341)
-		_, _, err := sock.ReadFromUDP(buf)
-		if err != nil {
-			fmt.Println(err)
-		}
+		select {
+		case motion_packet_channel_msg := <-motion_packet_channel:
+			// fmt.Println("motion_packet_channel_msg recieved!")
 
-		// Set a new reader which we will use to cast into our structs.
-		// This reader is for the header, which we determine what packet we have and what index our users car is in.
-		// Bytes 3 in the udp packet will be the packet number and byte 20 will be the index of the users car.
-		header_bytes_reader := bytes.NewReader([]byte{buf[3], buf[20]})
-
-		// Read the binary of the udp packet header into our struct
-		if err := binary.Read(header_bytes_reader, binary.LittleEndian, &Efficient_header); err != nil {
-			fmt.Println("binary.Read header failed:", err)
-		}
-
-		// Depending on which packet we have, which we find by looking at header.M_packetId
-		// We use a switch statement to then read the whole binary udp packet into its associated struct
-		switch Efficient_header.M_packetId {
-		case 2:
-			// If the packet we received is the lap_packet, read its binary into our lap_packet struct
-
-			// If our users car index is not 0 then we need to grab the correct bytes that belong to our users car data
-			player_car_bytes_multiplier := Efficient_header.M_playerCarIndex * 41
-
-			// Since we only need a few of the items from the lap packet. Read the bytes for the items we do need into our user_car_structs
-			// efficient struct. Below are the items we need in the format we grab the bytes below.
-			// M_header
-			// M_lastLapTime, M_currentLapTime M_bestLapTime, M_sector1Time, M_sector2Time
-			// M_carPosition
-			// M_currentLapNum
-			// M_pitStatus
-			// M_sector
-			if err := binary.Read(bytes.NewReader(append(append(
-				buf[0:21],
-				buf[player_car_bytes_multiplier+21:player_car_bytes_multiplier+41]...),
-				buf[(player_car_bytes_multiplier+53)],
-				buf[(player_car_bytes_multiplier+54)],
-				buf[(player_car_bytes_multiplier+55)],
-				buf[(player_car_bytes_multiplier+56)])), binary.LittleEndian, &User_PacketLapData); err != nil {
-				fmt.Println("binary.Read lap_packet failed:", err)
+			json_motion_packet, err := json.Marshal(motion_packet_channel_msg)
+			if err != nil {
+				fmt.Println(err)
 			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := conn.WriteMessage(websocket.TextMessage, json_motion_packet); err != nil {
+				log.Printf("Websocket", conn_number, " error writing json_motion_packet: %s", err)
+				return
+			}
+			break
+		case session_packet_channel_msg := <-session_packet_channel:
+			// fmt.Println("session_packet_channel_msg recieved!")
 
-			// Convert out struct into JSON format
-			json_lap_packet, err := json.Marshal(User_PacketLapData)
+			json_session_packet, err := json.Marshal(session_packet_channel_msg)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := conn.WriteMessage(websocket.TextMessage, json_session_packet); err != nil {
+				log.Printf("Websocket", conn_number, " error writing json_session_packet: %s", err)
+				return
+			}
+			break
+		case lap_packet_channel_msg := <-lap_packet_channel:
+			// fmt.Println("lap_packet_channel_msg recieved!")
+
+			json_lap_packet, err := json.Marshal(lap_packet_channel_msg)
 			if err != nil {
 				fmt.Println(err)
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := conn.WriteMessage(websocket.TextMessage, json_lap_packet); err != nil {
-				log.Printf("Websocket error writing lap_packet: %s", err)
+				log.Printf("Websocket", conn_number, " error writing json_lap_packet: %s", err)
+				return
+			}
+			break
+		case event_packet_channel_msg := <-event_packet_channel:
+			// fmt.Println("event_packet_channel_msg recieved!")
+
+			json_event_packet, err := json.Marshal(event_packet_channel_msg)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := conn.WriteMessage(websocket.TextMessage, json_event_packet); err != nil {
+				log.Printf("Websocket", conn_number, " error writing json_event_packet: %s", err)
+				return
+			}
+			break
+		case participant_packet_channel_msg := <-participant_packet_channel:
+			// fmt.Println("participant_packet_channel_msg recieved!")
+			// fmt.Println(participant_packet_channel_msg)
+
+			// for _, element := range participant_packet_channel_msg.M_participants {
+			//   fmt.Println(string(element.M_name[:]))
+			// }
+
+			json_participant_packet, err := json.Marshal(participant_packet_channel_msg)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := conn.WriteMessage(websocket.TextMessage, json_participant_packet); err != nil {
+				log.Printf("Websocket", conn_number, " error writing json_participant_packet: %s", err)
+				return
+			}
+			break
+		case car_setup_packet_channel_msg := <-car_setup_packet_channel:
+			// fmt.Println("car_setup_packet_channel_msg recieved!")
+
+			json_car_setup_packet, err := json.Marshal(car_setup_packet_channel_msg)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := conn.WriteMessage(websocket.TextMessage, json_car_setup_packet); err != nil {
+				log.Printf("Websocket", conn_number, " error writing json_car_setup_packet: %s", err)
+				return
+			}
+			break
+		case telemetry_packet_channel_msg := <-telemetry_packet_channel:
+			// fmt.Println("telemetry_packet_channel_msg recieved!")
+
+			json_telemetry_packet, err := json.Marshal(telemetry_packet_channel_msg)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := conn.WriteMessage(websocket.TextMessage, json_telemetry_packet); err != nil {
+				log.Printf("Websocket ", conn_number, " error writing json_telemetry_packet: %s", err)
+				return
+			}
+			break
+		case car_status_packet_channel_msg := <-car_status_packet_channel:
+			// fmt.Println("car_status_packet_channel_msg recieved!")
+
+			json_car_status_packet, err := json.Marshal(car_status_packet_channel_msg)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := conn.WriteMessage(websocket.TextMessage, json_car_status_packet); err != nil {
+				log.Printf("Websocket ", conn_number, " error writing json_car_status_packet: %s", err)
+				return
+			}
+			break
+		default:
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				fmt.Println("Ping failed on conn:", conn_number)
 				return
 			}
 			break
