@@ -137,6 +137,9 @@ func f1_2018_udp_client() {
 	// Create a variable that will tell us if our conn_map has connections open
 	conn_in_conn_map := false
 
+	// Set number of SETs to redis database to zero
+	num_redis_set := 0
+
 	// Redis database format:
 	// Session_uid:Frame_identifier:Packet_id
 
@@ -204,7 +207,10 @@ func f1_2018_udp_client() {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_motion_packet); err != nil {
 				fmt.Println("Setting packet json_motion_packet failed:", err)
+				num_redis_set -= 1
 			}
+
+			num_redis_set += 1
 
 			break
 		case 1:
@@ -228,7 +234,10 @@ func f1_2018_udp_client() {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_session_packet); err != nil {
 				fmt.Println("Setting packet json_session_packet failed:", err)
+				num_redis_set -= 1
 			}
+
+			num_redis_set += 1
 
 			break
 		case 2:
@@ -251,7 +260,10 @@ func f1_2018_udp_client() {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_lap_packet); err != nil {
 				fmt.Println("Setting packet json_lap_packet failed:", err)
+				num_redis_set -= 1
 			}
+
+			num_redis_set += 1
 
 			break
 		case 3:
@@ -260,17 +272,27 @@ func f1_2018_udp_client() {
 				fmt.Println("binary.Read event_packet failed:", err)
 			}
 
-			if event_packet.M_eventStringCode == session_start_code {
+			if Equal(event_packet.M_eventStringCode, session_end_code) {
+				fmt.Println("Session end code recieved, total number of packets recived and SET in redis database is:", num_redis_set)
+				fmt.Println("EVENT PACKET", event_packet, "\n")
+			}
+
+			if Equal(event_packet.M_eventStringCode, session_start_code) {
 				number_of_sessions_exists_integer_reply, err := redis_conn.Do("EXISTS", "number_of_sessions")
+
 				if err != nil {
 					fmt.Println("Checking if number_of_sessions exists failed:", err)
 				}
-				if number_of_sessions_exists_integer_reply == 1 {
+				fmt.Println("number_of_sessions_exists_integer_reply:", number_of_sessions_exists_integer_reply)
+
+				if number_of_sessions_exists_integer_reply == int64(1) {
+					// fmt.Println("1")
 					// If number_of_sessions exists
 					if _, err := redis_conn.Do("INCR", "number_of_sessions"); err != nil {
 						fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
 					}
 				} else {
+					// fmt.Println("2")
 					// If number_of_sessions doesnt exist
 					if _, err := redis_conn.Do("SET", "number_of_sessions", "1"); err != nil {
 						fmt.Println("Setting number_of_sessions to 1 failed:", err)
@@ -281,26 +303,36 @@ func f1_2018_udp_client() {
 				if err != nil {
 					fmt.Println("Checking if session_UIDs exists failed:", err)
 				}
-				if session_UIDs_exists_integer_reply == 1 {
+				fmt.Println("session_UIDs_exists_integer_reply:", session_UIDs_exists_integer_reply)
+				if session_UIDs_exists_integer_reply == int64(1) {
+					// fmt.Println("3")
 					// If number_of_sessions exists
 					session_UIDs_SADD_integer_reply, err := redis_conn.Do("SADD", "session_UIDs", (event_packet.M_header.M_sessionUID))
 					if err != nil {
 						fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
 					}
 
-					if session_UIDs_SADD_integer_reply == 0 {
+					fmt.Println("session_UIDs_SADD_integer_reply:", session_UIDs_SADD_integer_reply)
+
+					if session_UIDs_SADD_integer_reply == int64(0) {
+						// fmt.Println("4")
 						fmt.Println("Session with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", event_packet.M_header.M_sessionUID)
+					} else {
+						// fmt.Println("5")
+						num_redis_set = 0
 					}
 				} else {
+					// fmt.Println("6")
 					// If number_of_sessions doesnt exist
 					if _, err := redis_conn.Do("SET", "session_UIDs", (event_packet.M_header.M_sessionUID)); err != nil {
 						fmt.Println("Setting number_of_sessions to 1 failed:", err)
 					}
 				}
 
+				fmt.Println("EVENT PACKET", event_packet)
+
 			}
 
-			fmt.Println("EVENT PACKET", event_packet)
 			// Send the newly found event packet over our event packet channel so our websocket handlers can receive it and send it over our websocket
 			// If we have no connections made, we need to skip this step since we will be blocking on the channel until one of our cennections can receive it
 			if conn_in_conn_map {
@@ -328,7 +360,10 @@ func f1_2018_udp_client() {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_participant_packet); err != nil {
 				fmt.Println("Setting packet json_participant_packet failed:", err)
+				num_redis_set -= 1
 			}
+
+			num_redis_set += 1
 
 			break
 		case 5:
@@ -351,7 +386,10 @@ func f1_2018_udp_client() {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_car_setup_packet); err != nil {
 				fmt.Println("Setting packet json_car_setup_packet failed:", err)
+				num_redis_set -= 1
 			}
+
+			num_redis_set += 1
 
 			break
 		case 6:
@@ -374,7 +412,10 @@ func f1_2018_udp_client() {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_telemetry_packet); err != nil {
 				fmt.Println("Setting packet json_telemetry_packet failed:", err)
+				num_redis_set -= 1
 			}
+
+			num_redis_set += 1
 
 			break
 		case 7:
@@ -397,7 +438,10 @@ func f1_2018_udp_client() {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_car_status_packet); err != nil {
 				fmt.Println("Setting packet json_car_status_packet failed:", err)
+				num_redis_set -= 1
 			}
+
+			num_redis_set += 1
 
 			break
 		default:
@@ -441,16 +485,18 @@ func ping(c redis.Conn) error {
 	return nil
 }
 
-// Function that adds a count of our number of connections
-func num_of_conn_new_conn() {
-	num_of_conn += 1
-	fmt.Println("New connection made, incrementing num_of_conn by one. Current num_of_conn:", num_of_conn)
-}
-
-// FUnction that takes away a count of our number of connections
-func num_of_conn_conn_close() {
-	num_of_conn -= 1
-	fmt.Println("Conn closed with websocket, Decrementing num_of_conn by one connection. Current num_of_conn:", num_of_conn)
+// Equal tells whether a and b contain the same elements.
+// A nil argument is equivalent to an empty slice.
+func Equal(a, b [4]uint8) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // liveHandler is called when our browser goes to the page localhost:8080, this serves up our html file along
