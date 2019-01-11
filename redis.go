@@ -146,12 +146,12 @@ func getGameData(hub *Hub) {
 				fmt.Println("binary.Read motion_packet failed:", err)
 			}
 
+			// Send the Udp_data struct containing the packet_id and the packet itself over the hub.bradcast channel to
+			// be broadcasted to all connected clients
 			hub.broadcast <- &Udp_data{
 				Id:            0,
 				Motion_packet: Motion_packet,
 			}
-
-			// hub.broadcast <- Motion_packet
 
 			// Marshal the struct into json so we can save it in our redis database
 			json_motion_packet, err := json.Marshal(Motion_packet)
@@ -170,12 +170,12 @@ func getGameData(hub *Hub) {
 				fmt.Println("binary.Read session_packet failed:", err)
 			}
 
+			// Send the Udp_data struct containing the packet_id and the packet itself over the hub.bradcast channel to
+			// be broadcasted to all connected clients
 			hub.broadcast <- &Udp_data{
 				Id:             1,
 				Session_packet: Session_packet,
 			}
-
-			// hub.one_broadcast <- Session_packet
 
 			// Marshal the struct into json so we can save it in our redis database
 			json_session_packet, err := json.Marshal(Session_packet)
@@ -194,13 +194,14 @@ func getGameData(hub *Hub) {
 				fmt.Println("binary.Read lap_packet failed:", err)
 			}
 
+			// Send the Udp_data struct containing the packet_id and the packet itself over the hub.bradcast channel to
+			// be broadcasted to all connected clients
 			hub.broadcast <- &Udp_data{
 				Id:         2,
 				Lap_packet: Lap_packet,
 			}
 
-			// hub.two_broadcast <- Lap_packet
-
+			// Marshal the struct into json so we can save it in our redis database
 			json_lap_packet, err := json.Marshal(Lap_packet)
 			if err != nil {
 				fmt.Println(err)
@@ -217,28 +218,18 @@ func getGameData(hub *Hub) {
 				fmt.Println("binary.Read event_packet failed:", err)
 			}
 
-			// if Equal(Event_packet.M_eventStringCode, session_end_code) {
-			// 	fmt.Println("Session end code recieved, total number of packets recived and SET in redis database is:", num_redis_set)
-			// 	fmt.Println("EVENT PACKET", Event_packet, "\n")
-			// }
-
 			if Equal(Event_packet.M_eventStringCode, session_start_code) {
 				number_of_sessions_exists_integer_reply, err := redis_conn.Do("EXISTS", "number_of_sessions")
 
 				if err != nil {
 					fmt.Println("Checking if number_of_sessions exists failed:", err)
 				}
-				// fmt.Println("number_of_sessions_exists_integer_reply:", number_of_sessions_exists_integer_reply)
 
 				if number_of_sessions_exists_integer_reply == int64(1) {
-					// fmt.Println("1")
-					// If number_of_sessions exists
 					if _, err := redis_conn.Do("INCR", "number_of_sessions"); err != nil {
 						fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
 					}
 				} else {
-					// fmt.Println("2")
-					// If number_of_sessions doesnt exist
 					if _, err := redis_conn.Do("SET", "number_of_sessions", "1"); err != nil {
 						fmt.Println("Setting number_of_sessions to 1 failed:", err)
 					}
@@ -248,42 +239,31 @@ func getGameData(hub *Hub) {
 				if err != nil {
 					fmt.Println("Checking if session_UIDs exists failed:", err)
 				}
-				// fmt.Println("session_UIDs_exists_integer_reply:", session_UIDs_exists_integer_reply)
+
 				if session_UIDs_exists_integer_reply == int64(1) {
-					// fmt.Println("3")
-					// If number_of_sessions exists
 					session_UIDs_SADD_integer_reply, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID))
 					if err != nil {
 						fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
 					}
 
-					// fmt.Println("session_UIDs_SADD_integer_reply:", session_UIDs_SADD_integer_reply)
-
 					if session_UIDs_SADD_integer_reply == int64(0) {
-						// fmt.Println("4")
 						fmt.Println("\nSession with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", Event_packet.M_header.M_sessionUID, "\n")
 					} else {
-						// fmt.Println("5")
 						num_redis_set = 0
 					}
 				} else {
-					// fmt.Println("6")
-					// If number_of_sessions doesnt exist
 					if _, err := redis_conn.Do("SET", "session_UIDs", (Event_packet.M_header.M_sessionUID)); err != nil {
 						fmt.Println("Setting number_of_sessions to 1 failed:", err)
 					}
 				}
-
-				// fmt.Println("EVENT PACKET", Event_packet)
-
 			}
 
+			// Send the Udp_data struct containing the packet_id and the packet itself over the hub.bradcast channel to
+			// be broadcasted to all connected clients
 			hub.broadcast <- &Udp_data{
 				Id:           3,
 				Event_packet: Event_packet,
 			}
-
-			// hub.three_broadcast <- Event_packet
 
 		case 4:
 			// If the packet we received is the participant_packet, read its binary into our participant_packet struct
@@ -296,8 +276,7 @@ func getGameData(hub *Hub) {
 				Participant_packet: Participant_packet,
 			}
 
-			// hub.four_broadcast <- Participant_packet
-
+			// Marshal the struct into json so we can save it in our redis database
 			json_participant_packet, err := json.Marshal(Participant_packet)
 			if err != nil {
 				fmt.Println(err)
@@ -314,13 +293,14 @@ func getGameData(hub *Hub) {
 				fmt.Println("binary.Read car_setup_packet failed:", err)
 			}
 
+			// Send the Udp_data struct containing the packet_id and the packet itself over the hub.bradcast channel to
+			// be broadcasted to all connected clients
 			hub.broadcast <- &Udp_data{
 				Id:               5,
 				Car_setup_packet: Car_setup_packet,
 			}
 
-			// hub.five_broadcast <- Car_setup_packet
-
+			// Marshal the struct into json so we can save it in our redis database
 			json_car_setup_packet, err := json.Marshal(Car_setup_packet)
 			if err != nil {
 				fmt.Println(err)
@@ -337,13 +317,14 @@ func getGameData(hub *Hub) {
 				fmt.Println("binary.Read telemetry_packet failed:", err)
 			}
 
+			// Send the Udp_data struct containing the packet_id and the packet itself over the hub.bradcast channel to
+			// be broadcasted to all connected clients
 			hub.broadcast <- &Udp_data{
 				Id:               6,
 				Telemetry_packet: Telemetry_packet,
 			}
 
-			// hub.six_broadcast <- Telemetry_packet
-
+			// Marshal the struct into json so we can save it in our redis database
 			json_telemetry_packet, err := json.Marshal(Telemetry_packet)
 			if err != nil {
 				fmt.Println(err)
@@ -360,13 +341,14 @@ func getGameData(hub *Hub) {
 				fmt.Println("binary.Read car_status_packet failed:", err)
 			}
 
+			// Send the Udp_data struct containing the packet_id and the packet itself over the hub.bradcast channel to
+			// be broadcasted to all connected clients
 			hub.broadcast <- &Udp_data{
 				Id:                7,
 				Car_status_packet: Car_status_packet,
 			}
 
-			// hub.seven_broadcast <- Car_status_packet
-
+			// Marshal the struct into json so we can save it in our redis database
 			json_car_status_packet, err := json.Marshal(Car_status_packet)
 			if err != nil {
 				fmt.Println(err)
