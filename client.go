@@ -245,7 +245,7 @@ func (c *Client) writePump() {
 			}
 
 		case <-ticker.C: // If our ticker has reached its time
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
+			// Add another 10 seconds to the SetWriteDeadline
 
 			// If our client has disconected from the websocket on thier end, close the client and its connection by returning and executing our defer statement
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
@@ -286,7 +286,11 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 		// go client.readPump() // Not used since these connections dont need to send data, only receive.
 
 	} else if conn_type == "history" { // If our websocket connection is from history
-		client := &Client{hub: hub, conn_type: conn_type, conn: conn}
+		client := &Client{
+			hub:       hub,
+			conn_type: conn_type,
+			conn:      conn,
+		}
 
 		// Allow collection of memory referenced by the caller by doing all work in
 		// new goroutines.
