@@ -70,18 +70,26 @@ func (h *Hub) run() {
 				close(client.Car_setup_packet_send)   // ..
 				close(client.Telemetry_packet_send)   // ..
 				close(client.Car_status_packet_send)  // ..
-				close(client.save_to_database_alert)  // ..
+				close(client.Save_to_database_alert)  // ..
 			}
 			// If we have a notlive client that is disconnecting
 		case client := <-h.notlive_unregister:
 			if _, ok := h.notlive_clients[client]; ok {
 				log.Println("", client.conn.RemoteAddr(), " ", "history client closed")
 				delete(h.notlive_clients, client)    // Delete the client
-				close(client.save_to_database_alert) // Close the packet channel!
+				close(client.Save_to_database_alert) // Close the packet channel!
 			}
 
 		// If we have a message to broadcast
 		case message := <-h.broadcast:
+			// If the message we receive is a Save_to_database_alert, then send that right away over all websockets, including notlive
+			// -30 is a code used by journalists to signilize end of article, so 30 will symbolize end of session, send a Save_to_database_alert
+			if message.Id == 30 {
+				for client := range h.notlive_clients {
+					client.Save_to_database_alert <- message.Save_to_database_alert
+				}
+			}
+
 			for client := range h.live_clients { // Loop through all our clients
 				switch message.Id { // Depending on what packet we have to send, send that packet
 				case 0:
@@ -100,6 +108,8 @@ func (h *Hub) run() {
 					client.Telemetry_packet_send <- message.Telemetry_packet
 				case 7:
 					client.Car_status_packet_send <- message.Car_status_packet
+				case 30:
+					client.Save_to_database_alert <- message.Save_to_database_alert
 				}
 			}
 		}

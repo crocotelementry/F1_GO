@@ -37,7 +37,7 @@ var upgrader = websocket.Upgrader{
 }
 
 // Struct that is sent over websocket to alert of new data to be saved or not saved to longterm storage
-type save_to_database_alerts struct {
+type Save_to_database_alerts struct {
 	date   string
 	length int
 }
@@ -63,7 +63,7 @@ type Client struct {
 	Car_setup_packet_send   chan structs.PacketCarSetupData
 	Telemetry_packet_send   chan structs.PacketCarTelemetryData
 	Car_status_packet_send  chan structs.PacketCarStatusData
-	save_to_database_alert  chan *save_to_database_alerts
+	Save_to_database_alert  chan Save_to_database_alerts
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -72,6 +72,7 @@ type Client struct {
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
 func (c *Client) fetchHistory() {
+	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		c.hub.notlive_unregister <- c
 		c.conn.Close()
@@ -90,6 +91,33 @@ func (c *Client) fetchHistory() {
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 
 		// Fetch that data it wants from database and send it over the ws
+		select {
+		case message, ok := <-c.Save_to_database_alert:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
+			if !ok {
+				// The hub closed the channel.
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				log.Println("!ok problem with Save_to_database_alert")
+				return
+			}
+			// Marshal our message into json so we can send it over the websocket
+			json_message_marshaled, err := json.Marshal(message)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				return
+			}
+
+		case <-ticker.C: // If our ticker has reached its time
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
+
+			// If our client has disconected from the websocket on thier end, close the client and its connection by returning and executing our defer statement
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
 	}
 }
 
@@ -251,6 +279,24 @@ func (c *Client) writePump() {
 				return
 			}
 
+		case message, ok := <-c.Save_to_database_alert:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
+			if !ok {
+				// The hub closed the channel.
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				log.Println("!ok problem with Save_to_database_alert")
+				return
+			}
+			// Marshal our message into json so we can send it over the websocket
+			json_message_marshaled, err := json.Marshal(message)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				return
+			}
+
 		case <-ticker.C: // If our ticker has reached its time
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 
@@ -284,7 +330,7 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 			Car_setup_packet_send:   make(chan structs.PacketCarSetupData),
 			Telemetry_packet_send:   make(chan structs.PacketCarTelemetryData),
 			Car_status_packet_send:  make(chan structs.PacketCarStatusData),
-			save_to_database_alert:  make(chan *save_to_database_alerts),
+			Save_to_database_alert:  make(chan Save_to_database_alerts),
 		}
 		client.hub.live_register <- client
 
@@ -298,7 +344,7 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 			hub:                    hub,
 			conn_type:              conn_type,
 			conn:                   conn,
-			save_to_database_alert: make(chan *save_to_database_alerts),
+			Save_to_database_alert: make(chan Save_to_database_alerts),
 		}
 		client.hub.notlive_register <- client
 
