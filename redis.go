@@ -5,7 +5,11 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 
 	"github.com/crocotelementry/F1_GO/structs"
 	"github.com/gomodule/redigo/redis"
@@ -31,14 +35,15 @@ var (
 type Udp_data struct {
 	Id int
 
-	Motion_packet      structs.PacketMotionData
-	Session_packet     structs.PacketSessionData
-	Lap_packet         structs.PacketLapData
-	Event_packet       structs.PacketEventData
-	Participant_packet structs.PacketParticipantsData
-	Car_setup_packet   structs.PacketCarSetupData
-	Telemetry_packet   structs.PacketCarTelemetryData
-	Car_status_packet  structs.PacketCarStatusData
+	Motion_packet          structs.PacketMotionData
+	Session_packet         structs.PacketSessionData
+	Lap_packet             structs.PacketLapData
+	Event_packet           structs.PacketEventData
+	Participant_packet     structs.PacketParticipantsData
+	Car_setup_packet       structs.PacketCarSetupData
+	Telemetry_packet       structs.PacketCarTelemetryData
+	Car_status_packet      structs.PacketCarStatusData
+	Save_to_database_alert Save_to_database_alerts
 }
 
 // To establish connectivity in redigo, you need to create a redis.Pool object which is a pool of connections to Redis.
@@ -102,7 +107,23 @@ func getGameData(hub *Hub) {
 	// get a connection from the pool (redis.Conn)
 	redis_conn := redis_pool.Get()
 	// use defer to close the connection when the function completes
-	defer redis_conn.Close()
+
+	c := make(chan os.Signal, 2)
+	// When we close F1_go by using control-c, we will catch it, flush the redis database empty and then
+	// close the connection to the redis database before closing F1_GO
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		redis_conn.Do("FlushAll")
+		fmt.Println("\n")
+		log.Println("redis flushed")
+		redis_conn.Close()
+		os.Exit(1)
+	}()
+
+	defer func() {
+		redis_conn.Close()
+	}()
 
 	// call Redis PING command to test connectivity
 	err := ping(redis_conn)
@@ -255,6 +276,21 @@ func getGameData(hub *Hub) {
 					if _, err := redis_conn.Do("SET", "session_UIDs", (Event_packet.M_header.M_sessionUID)); err != nil {
 						fmt.Println("Setting number_of_sessions to 1 failed:", err)
 					}
+				}
+			}
+
+			// If we receive a session end code, send a data alert over the websocket to ask the user if they want to save the session for long
+			// term use in a MYSQL database, discard the session, or hold on to it until our redis database reaches its size limit or its amount
+			// of sessions limit.
+			if Equal(Event_packet.M_eventStringCode, session_end_code) {
+				// Send the Udp_data struct containing the packet_id and the packet itself over the hub.bradcast channel to
+				// be broadcasted to all connected clients
+				hub.broadcast <- &Udp_data{
+					Id: 3,
+					Save_to_database_alert: Save_to_database_alerts{
+						date:   "now, lol plz fix this later",
+						length: 69,
+					},
 				}
 			}
 
