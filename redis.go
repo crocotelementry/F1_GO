@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"F1_GO/structs"
+	"github.com/crocotelementry/F1_GO/structs"
 	"github.com/gomodule/redigo/redis"
 )
 

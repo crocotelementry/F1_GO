@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"F1_GO/structs"
+	"github.com/crocotelementry/F1_GO/structs"
 	"github.com/gorilla/websocket"
 )
 
