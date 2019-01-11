@@ -44,21 +44,21 @@ func (h *Hub) run() {
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				log.Println("", client.conn.RemoteAddr(), " ", "client closed")
-				delete(h.clients, client)								// Delete the client
-				close(client.Motion_packet_send)				// Close all the different packet channels!
-				close(client.Session_packet_send)				// ..
-				close(client.Lap_packet_send)						// ..
-				close(client.Event_packet_send)					// ..
-				close(client.Participant_packet_send)		// ..
-				close(client.Car_setup_packet_send)			// ..
-				close(client.Telemetry_packet_send)			// ..
-				close(client.Car_status_packet_send)		// ..
+				delete(h.clients, client)             // Delete the client
+				close(client.Motion_packet_send)      // Close all the different packet channels!
+				close(client.Session_packet_send)     // ..
+				close(client.Lap_packet_send)         // ..
+				close(client.Event_packet_send)       // ..
+				close(client.Participant_packet_send) // ..
+				close(client.Car_setup_packet_send)   // ..
+				close(client.Telemetry_packet_send)   // ..
+				close(client.Car_status_packet_send)  // ..
 			}
 
 		// If we have a message to broadcast
 		case message := <-h.broadcast:
-			for client := range h.clients {		// Loop through all our clients
-				switch message.Id {							// Depending on what packet we have to send, send that packet
+			for client := range h.clients { // Loop through all our clients
+				switch message.Id { // Depending on what packet we have to send, send that packet
 				case 0:
 					client.Motion_packet_send <- message.Motion_packet
 				case 1:

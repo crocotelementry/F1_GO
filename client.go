@@ -2,14 +2,14 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
-	"fmt"
-	"encoding/json"
 
-	"github.com/gorilla/websocket"
 	"F1_GO/structs"
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -40,25 +40,24 @@ var upgrader = websocket.Upgrader{
 type Client struct {
 	hub *Hub
 
-  // What type of client is it
-  // Live, Time, History
-  conn_type string
+	// What type of client is it
+	// Live, Time, History
+	conn_type string
 
 	// The websocket connection.
 	conn *websocket.Conn
 
 	// Buffered channel of outbound messages.
 	// send chan *Udp_data
-	Motion_packet_send chan structs.PacketMotionData
-	Session_packet_send chan structs.PacketSessionData
-	Lap_packet_send chan structs.PacketLapData
-	Event_packet_send chan structs.PacketEventData
+	Motion_packet_send      chan structs.PacketMotionData
+	Session_packet_send     chan structs.PacketSessionData
+	Lap_packet_send         chan structs.PacketLapData
+	Event_packet_send       chan structs.PacketEventData
 	Participant_packet_send chan structs.PacketParticipantsData
-	Car_setup_packet_send chan structs.PacketCarSetupData
-	Telemetry_packet_send chan structs.PacketCarTelemetryData
-	Car_status_packet_send chan structs.PacketCarStatusData
+	Car_setup_packet_send   chan structs.PacketCarSetupData
+	Telemetry_packet_send   chan structs.PacketCarTelemetryData
+	Car_status_packet_send  chan structs.PacketCarStatusData
 }
-
 
 // readPump pumps messages from the websocket connection to the hub.
 //
@@ -83,7 +82,7 @@ func (c *Client) fetchHistory() {
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 
-    // Fetch that data it wants from database and send it over the ws
+		// Fetch that data it wants from database and send it over the ws
 	}
 }
 
@@ -101,8 +100,8 @@ func (c *Client) writePump() {
 	}()
 	for {
 		select {
-		case message, ok := <-c.Motion_packet_send:		// If we have a good message, then send it over the clients websocket
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))		// Add another 10 seconds to the SetWriteDeadline
+		case message, ok := <-c.Motion_packet_send: // If we have a good message, then send it over the clients websocket
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 			if !ok {
 				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
@@ -245,19 +244,16 @@ func (c *Client) writePump() {
 				return
 			}
 
-
-		case <-ticker.C:		// If our ticker has reached its time, add another 10 seconds and if the client has closed the websocket, close the client.
+		case <-ticker.C: // If our ticker has reached its time
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 
 			// If our client has disconected from the websocket on thier end, close the client and its connection by returning and executing our defer statement
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				log.Println("ticker case problem")
 				return
 			}
 		}
 	}
 }
-
 
 // serveWs handles websocket requests from the peer.
 func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request) {
@@ -268,36 +264,36 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 	}
 
 	// If our websocket connection is from live or time
-  if conn_type == "live" || conn_type == "time" {
-    client := &Client{
-			hub: hub,
-			conn_type: conn_type,
-			conn: conn,
-			Motion_packet_send: make(chan structs.PacketMotionData),
-			Session_packet_send: make(chan structs.PacketSessionData),
-			Lap_packet_send: make(chan structs.PacketLapData),
-			Event_packet_send: make(chan structs.PacketEventData),
+	if conn_type == "live" || conn_type == "time" {
+		client := &Client{
+			hub:                     hub,
+			conn_type:               conn_type,
+			conn:                    conn,
+			Motion_packet_send:      make(chan structs.PacketMotionData),
+			Session_packet_send:     make(chan structs.PacketSessionData),
+			Lap_packet_send:         make(chan structs.PacketLapData),
+			Event_packet_send:       make(chan structs.PacketEventData),
 			Participant_packet_send: make(chan structs.PacketParticipantsData),
-			Car_setup_packet_send: make(chan structs.PacketCarSetupData),
-			Telemetry_packet_send: make(chan structs.PacketCarTelemetryData),
-			Car_status_packet_send: make(chan structs.PacketCarStatusData),
+			Car_setup_packet_send:   make(chan structs.PacketCarSetupData),
+			Telemetry_packet_send:   make(chan structs.PacketCarTelemetryData),
+			Car_status_packet_send:  make(chan structs.PacketCarStatusData),
 		}
-  	client.hub.register <- client
+		client.hub.register <- client
 
-  	// Allow collection of memory referenced by the caller by doing all work in
-  	// new goroutines.
-    go client.writePump()
-    // go client.readPump() // Not used since these connections dont need to send data, only receive.
+		// Allow collection of memory referenced by the caller by doing all work in
+		// new goroutines.
+		go client.writePump()
+		// go client.readPump() // Not used since these connections dont need to send data, only receive.
 
-  } else if conn_type == "history" {		// If our websocket connection is from history
-    client := &Client{hub: hub, conn_type: conn_type, conn: conn}
+	} else if conn_type == "history" { // If our websocket connection is from history
+		client := &Client{hub: hub, conn_type: conn_type, conn: conn}
 
-    // Allow collection of memory referenced by the caller by doing all work in
-  	// new goroutines.
-    go client.fetchHistory()
+		// Allow collection of memory referenced by the caller by doing all work in
+		// new goroutines.
+		go client.fetchHistory()
 
-  } else {
-    log.Println("ws client type is invalid, type:", conn_type)
-    return
-  }
+	} else {
+		log.Println("ws client type is invalid, type:", conn_type)
+		return
+	}
 }

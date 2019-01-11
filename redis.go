@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/gomodule/redigo/redis"
 	"F1_GO/structs"
+	"github.com/gomodule/redigo/redis"
 )
 
 var (

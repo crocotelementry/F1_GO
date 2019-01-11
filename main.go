@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	addr      = flag.String("addr", ":8080", "http service address")
+	addr = flag.String("addr", ":8080", "http service address")
 
 	// Create our UDP socket
 	addrs, _  = net.ResolveUDPAddr("udp", ":20777")
