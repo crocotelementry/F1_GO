@@ -12,10 +12,13 @@ import (
 
 var (
 	addr      = flag.String("addr", ":8080", "http service address")
+
+	// Create our UDP socket
 	addrs, _  = net.ResolveUDPAddr("udp", ":20777")
 	sock, err = net.ListenUDP("udp", addrs)
 )
 
+// Prints out if we connect to our databases and then the table scheme
 func logPrintFormat() {
 	ready := <-redis_ping_done
 	if ready == true {
@@ -29,6 +32,7 @@ func logPrintFormat() {
 	return
 }
 
+// Called when when a client lands on localhost:8080/
 func liveHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("", r.RemoteAddr, " ", r.URL)
 	if r.URL.Path != "/" {
@@ -42,7 +46,7 @@ func liveHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "./web/live_dashboard.html")
 }
 
-// Called when at the page localhost:8080/history
+// Called when when a client lands on localhost:8080/history
 func historyHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("", r.RemoteAddr, " ", r.URL)
 	if r.URL.Path != "/history" {
@@ -56,7 +60,7 @@ func historyHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "./web/history_dashboard.html")
 }
 
-// Called when at the page localhost:8080/time
+// Called when when a client lands on localhost:8080/time
 func timeHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("", r.RemoteAddr, " ", r.URL)
 	if r.URL.Path != "/time" {
@@ -78,9 +82,12 @@ func main() {
 
 	go logPrintFormat()
 
+	// Create a hub object to handle our client connections and needs
 	live_hub := newHub()
 	go live_hub.run()
 
+	// Start getting data from the game
+	// Add to redis and send to hub
 	go getGameData(live_hub)
 
 	// Creates a new mux
