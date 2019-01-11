@@ -1,66 +1,99 @@
-## UDP client and UDP client + websocket
+# F1_GO
 
-### To Run the UDP Client
+A Live Telemetry Dashboard, Storage, and Analyzer for Codemasters F1 2018 game for PC, XBOX, and Playstation
 
-Create a new project in your go path and copy the structs folder and udp_client.go. Don't forget to also have the structs.go file inside the structs folder as well.
+> F1_GO is Written in Go and Utilizes Websockets, Redis, and MYSQL
 
+---------------------------------------
+  * [Features](#features)
+  * [Requirements](#requirements)
+  * [Installation](#installation)
+  * [Usage](#usage)
+  * [License](#license)
+
+---------------------------------------
+
+## Features
+  * None
+  * So
+  * Far
+  * Lol
+  * Hope
+  * This
+  * Works?
+
+## Requirements
+  * Some version of go so you know, stuff actually works
+  * Gorrila Web Toolkit Websocket
+  * Gorilla Web Toolkit Mux
+  * Redigo, a Go client for the Redis database.
+  * Go-MySQL-Driver, A MySQL-Driver for Go's database/sql package
+
+---------------------------------------
+
+## Installation
+Simple install the package to your [$GOPATH](https://github.com/golang/go/wiki/GOPATH "GOPATH") with the [go tool](https://golang.org/cmd/go/ "go command") from shell:
+```bash
+$ go get -u github.com/crocotelementry/F1_GO
 ```
-go run udp_client.go
-```
+Make sure [Git is installed](https://git-scm.com/downloads) on your machine and in your system's `PATH`.
 
-### To run the UDP client + websocket
-
-To see images of webpage, see static folder!
-
-Create a new project in your go path and copy the following items like such inside your gopath projects area:
-
-```
-[folder] *Project_Name*
-    -> [folder] static
-        -> [folder] css
-            -> telemetry_dashboard.css
-
-        -> [folder] js
-            -> telemetry_dashboard.js
-
-        -> telemetry_dashboard.html
-
-
-    -> [folder] structs
-        -> structs.go
-
-
-    -> go_websocket_server.go
-```
-
-Now once the files are now in your go path, we also need gorilla.
-
-To do this, run "go get" pointing to a gorilla package. We only use two gorilla packages, websocket and mux.
-
-For gorilla/websocket:
-
-```
+Until we find a way to have our requirements including in the F1_GO package, We will also need to install four more items into your go path.
+gorilla/websocket:
+```bash
 $ go get github.com/gorilla/websocket
 ```
 
-For gorilla/mux:
-
-```
+gorilla/mux:
+```bash
 $ go get github.com/gorilla/mux
 ```
 
-Since we are using a Redis database for our short term storage, we need get redis. We are using redigo.
-
-To do this:
-
-```
+redigo:
+```bash
 $ go get github.com/gomodule/redigo/redis
 ```
 
-Finally, since we are using a MYSQL database for our long term storage since speed is not of the essence but relations are
-
-To do this:
-
-```
+go-sql-driver:
+```bash
 $ go get -u github.com/go-sql-driver/mysql
 ```
+
+## Usage
+*F1_GO* is ran by running the main executable. Some features that are critical to *F1_GO's* usability are able to be ran from the terminal window in which you
+start *F1_GO*, but it is not recommended. After *F1_GO* is started, all that is needed is to access the websocket from a web browser at the following address: *http://localhost:8080/*
+
+To run *F1_GO*:
+```go
+go run *.go
+```
+
+---------------------------------------
+
+## License
+F1_GO is licensed under the [MIT License](https://raw.github.com/crocotelementry/F1_GO/master/LICENSE)
+
+MIT License summarizes the license scope as follows:
+> A short and simple permissive license with conditions only requiring preservation of copyright and license notices. Licensed works, modifications, and larger works may be distributed under different terms and without source code.
+
+
+That means:
+  * Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  * The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+You can read the full terms here: [LICENSE](https://raw.github.com/crocotelementry/F1_GO/master/LICENSE).
