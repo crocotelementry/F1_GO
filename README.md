@@ -49,10 +49,18 @@ For gorilla/mux:
 $ go get github.com/gorilla/mux
 ```
 
-Finally, since we are using a Redis database for our short term storage, we need get redis. We are using redigo.
+Since we are using a Redis database for our short term storage, we need get redis. We are using redigo.
 
 To do this:
 
 ```
 $ go get github.com/gomodule/redigo/redis
+```
+
+Finally, since we are using a MYSQL database for our long term storage since speed is not of the essence but relations are
+
+To do this:
+
+```
+$ go get -u github.com/go-sql-driver/mysql
 ```
