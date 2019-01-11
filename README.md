@@ -40,22 +40,22 @@ Make sure [Git is installed](https://git-scm.com/downloads) on your machine and 
 
 Until we find a way to have our requirements including in the F1_GO package, We will also need to install four more items into your go path.
 
-gorilla/websocket:
+**gorilla/websocket:**
 ```bash
 $ go get github.com/gorilla/websocket
 ```
 
-gorilla/mux:
+**gorilla/mux:**
 ```bash
 $ go get github.com/gorilla/mux
 ```
 
-redigo:
+**redigo:**
 ```bash
 $ go get github.com/gomodule/redigo/redis
 ```
 
-go-sql-driver:
+**go-sql-driver:**
 ```bash
 $ go get -u github.com/go-sql-driver/mysql
 ```
