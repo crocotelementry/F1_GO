@@ -1,8 +1,8 @@
 # F1_GO
 
-A Live Telemetry Dashboard, Storage, and Analyzer for Codemasters F1 2018 game for PC, XBOX, and Playstation
+> A Live Telemetry Dashboard, Storage, and Analyzer for Codemasters F1 2018 game for PC, XBOX, and Playstation
 
-> F1_GO is Written in Go and Utilizes Websockets, Redis, and MYSQL
+F1_GO is Written in Go and Utilizes Websockets, Redis, and MYSQL
 
 ---------------------------------------
   * [Features](#features)
