@@ -39,6 +39,7 @@ $ go get -u github.com/crocotelementry/F1_GO
 Make sure [Git is installed](https://git-scm.com/downloads) on your machine and in your system's `PATH`.
 
 Until we find a way to have our requirements including in the F1_GO package, We will also need to install four more items into your go path.
+
 gorilla/websocket:
 ```bash
 $ go get github.com/gorilla/websocket
