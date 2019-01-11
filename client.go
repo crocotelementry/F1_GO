@@ -32,8 +32,8 @@ var (
 )
 
 var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1341,
-	WriteBufferSize: 1341,
+	// ReadBufferSize:  1341,
+	// WriteBufferSize: 1341,
 }
 
 // Client is a middleman between the websocket connection and the hub.
@@ -101,177 +101,155 @@ func (c *Client) writePump() {
 	}()
 	for {
 		select {
-		case message, ok := <-c.Motion_packet_send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			// log.Println("case ok value:", ok)
+		case message, ok := <-c.Motion_packet_send:		// If we have a good message, then send it over the clients websocket
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))		// Add another 10 seconds to the SetWriteDeadline
 			if !ok {
 				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("if !ok problem")
-				log.Println("message looks like:", message)
-				log.Println("message is Motion_packet_send")
+				log.Println("!ok problem with Motion_packet_send")
 				return
 			}
+			// Marshal our message into json so we can send it over the websocket
 			json_message_marshaled, err := json.Marshal(message)
 			if err != nil {
 				fmt.Println(err)
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
-				// log.Printf("error writing json_message_marshaled: %s", err)
 				return
 			}
 
 		case message, ok := <-c.Session_packet_send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			// log.Println("case ok value:", ok)
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 			if !ok {
 				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("if !ok problem")
-				log.Println("message looks like:", message)
-				log.Println("message is Motion_packet_send")
+				log.Println("!ok problem with Session_packet_send")
 				return
 			}
+			// Marshal our message into json so we can send it over the websockets
 			json_message_marshaled, err := json.Marshal(message)
 			if err != nil {
 				fmt.Println(err)
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
-				// log.Printf("error writing json_message_marshaled: %s", err)
 				return
 			}
 
 		case message, ok := <-c.Lap_packet_send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			// log.Println("case ok value:", ok)
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 			if !ok {
 				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("if !ok problem")
-				log.Println("message looks like:", message)
-				log.Println("message is Motion_packet_send")
+				log.Println("!ok problem with Lap_packet_send")
 				return
 			}
+			// Marshal our message into json so we can send it over the websocket
 			json_message_marshaled, err := json.Marshal(message)
 			if err != nil {
 				fmt.Println(err)
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
-				// log.Printf("error writing json_message_marshaled: %s", err)
 				return
 			}
 
 		case message, ok := <-c.Event_packet_send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			// log.Println("case ok value:", ok)
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 			if !ok {
 				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("if !ok problem")
-				log.Println("message looks like:", message)
-				log.Println("message is Motion_packet_send")
+				log.Println("if !ok problem with Event_packet_send")
 				return
 			}
+			// Marshal our message into json so we can send it over the websocket
 			json_message_marshaled, err := json.Marshal(message)
 			if err != nil {
 				fmt.Println(err)
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
-				// log.Printf("error writing json_message_marshaled: %s", err)
 				return
 			}
 
 		case message, ok := <-c.Participant_packet_send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			// log.Println("case ok value:", ok)
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 			if !ok {
 				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("if !ok problem")
-				log.Println("message looks like:", message)
-				log.Println("message is Motion_packet_send")
+				log.Println("!ok problem with Participant_packet_send")
 				return
 			}
+			// Marshal our message into json so we can send it over the websocket
 			json_message_marshaled, err := json.Marshal(message)
 			if err != nil {
 				fmt.Println(err)
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
-				// log.Printf("error writing json_message_marshaled: %s", err)
 				return
 			}
 
 		case message, ok := <-c.Car_setup_packet_send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			// log.Println("case ok value:", ok)
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 			if !ok {
 				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("if !ok problem")
-				log.Println("message looks like:", message)
-				log.Println("message is Motion_packet_send")
+				log.Println("!ok problem with Car_setup_packet_sends")
 				return
 			}
+			// Marshal our message into json so we can send it over the websocket
 			json_message_marshaled, err := json.Marshal(message)
 			if err != nil {
 				fmt.Println(err)
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
-				// log.Printf("error writing json_message_marshaled: %s", err)
 				return
 			}
 
 		case message, ok := <-c.Telemetry_packet_send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			// log.Println("case ok value:", ok)
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 			if !ok {
 				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("if !ok problem")
-				log.Println("message looks like:", message)
-				log.Println("message is Motion_packet_send")
+				log.Println("!ok problem with Telemetry_packet_send")
 				return
 			}
+			// Marshal our message into json so we can send it over the websocket
 			json_message_marshaled, err := json.Marshal(message)
 			if err != nil {
 				fmt.Println(err)
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
-				// log.Printf("error writing json_message_marshaled: %s", err)
 				return
 			}
 
 		case message, ok := <-c.Car_status_packet_send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			// log.Println("case ok value:", ok)
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 			if !ok {
 				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("if !ok problem")
-				log.Println("message looks like:", message)
-				log.Println("message is Motion_packet_send")
+				log.Println("!ok problem with Car_status_packet_send")
 				return
 			}
+			// Marshal our message into json so we can send it over the websocket
 			json_message_marshaled, err := json.Marshal(message)
 			if err != nil {
 				fmt.Println(err)
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
-				// log.Printf("error writing json_message_marshaled: %s", err)
 				return
 			}
 
 
-		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+		case <-ticker.C:		// If our ticker has reached its time, add another 10 seconds and if the client has closed the websocket, close the client.
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
+
+			// If our client has disconected from the websocket on thier end, close the client and its connection by returning and executing our defer statement
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				log.Println("ticker case problem")
 				return
@@ -289,6 +267,7 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// If our websocket connection is from live or time
   if conn_type == "live" || conn_type == "time" {
     client := &Client{
 			hub: hub,
@@ -310,7 +289,7 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
     go client.writePump()
     // go client.readPump() // Not used since these connections dont need to send data, only receive.
 
-  } else if conn_type == "history" {
+  } else if conn_type == "history" {		// If our websocket connection is from history
     client := &Client{hub: hub, conn_type: conn_type, conn: conn}
 
     // Allow collection of memory referenced by the caller by doing all work in
