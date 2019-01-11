@@ -36,6 +36,12 @@ var upgrader = websocket.Upgrader{
 	// WriteBufferSize: 1341,
 }
 
+// Struct that is sent over websocket to alert of new data to be saved or not saved to longterm storage
+type save_to_database_alerts struct {
+	date   string
+	length int
+}
+
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
 	hub *Hub
@@ -57,6 +63,7 @@ type Client struct {
 	Car_setup_packet_send   chan structs.PacketCarSetupData
 	Telemetry_packet_send   chan structs.PacketCarTelemetryData
 	Car_status_packet_send  chan structs.PacketCarStatusData
+	save_to_database_alert  chan *save_to_database_alerts
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -66,7 +73,7 @@ type Client struct {
 // reads from this goroutine.
 func (c *Client) fetchHistory() {
 	defer func() {
-		// c.hub.unregister <- c
+		c.hub.notlive_unregister <- c
 		c.conn.Close()
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
@@ -95,7 +102,7 @@ func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.hub.unregister <- c
+		c.hub.live_unregister <- c
 		c.conn.Close()
 	}()
 	for {
@@ -245,7 +252,7 @@ func (c *Client) writePump() {
 			}
 
 		case <-ticker.C: // If our ticker has reached its time
-			// Add another 10 seconds to the SetWriteDeadline
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 
 			// If our client has disconected from the websocket on thier end, close the client and its connection by returning and executing our defer statement
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
@@ -277,8 +284,9 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 			Car_setup_packet_send:   make(chan structs.PacketCarSetupData),
 			Telemetry_packet_send:   make(chan structs.PacketCarTelemetryData),
 			Car_status_packet_send:  make(chan structs.PacketCarStatusData),
+			save_to_database_alert:  make(chan *save_to_database_alerts),
 		}
-		client.hub.register <- client
+		client.hub.live_register <- client
 
 		// Allow collection of memory referenced by the caller by doing all work in
 		// new goroutines.
@@ -287,10 +295,12 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 
 	} else if conn_type == "history" { // If our websocket connection is from history
 		client := &Client{
-			hub:       hub,
-			conn_type: conn_type,
-			conn:      conn,
+			hub:                    hub,
+			conn_type:              conn_type,
+			conn:                   conn,
+			save_to_database_alert: make(chan *save_to_database_alerts),
 		}
+		client.hub.notlive_register <- client
 
 		// Allow collection of memory referenced by the caller by doing all work in
 		// new goroutines.
