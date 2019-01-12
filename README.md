@@ -26,7 +26,7 @@ F1_GO is Written in Go and Utilizes Websockets, Redis, and MYSQL
   * Some version of go so you know, stuff actually works
   * Gorrila Web Toolkit Websocket
   * Gorilla Web Toolkit Mux
-  * Redigo, a Go client for the Redis database.
+  * Redigo, a Go client for the Redis database. *Make sure this is up and running before starting F1_GO*
   * Go-MySQL-Driver, A MySQL-Driver for Go's database/sql package
 
 ---------------------------------------
