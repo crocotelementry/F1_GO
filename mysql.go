@@ -385,8 +385,13 @@ func main() {
 
   db, err := sql.Open("mysql", mysql_login_string_front+mysql_password+mysql_login_string_back)
   if err != nil {
-     log.Println(err)
-  } else {
+     log.Println("mysql: could not get a connection: %v", err)
+  }
+
+  if err := db.Ping(); err != nil {
+		db.Close()
+		log.Println("mysql: could not establish a good connection: %v", err)
+	} else {
 
     arg := os.Args
 
