@@ -80,6 +80,7 @@ func main() {
 	flag.StringVar(&dir, "dir", "./web", "the directory to serve files from. Defaults to the current dir")
 	flag.Parse()
 
+	// Outputs a table like visual to keep track of what is outputed by our log.Orintlns
 	go logPrintFormat()
 
 	// Create a hub object to handle our client connections and needs
