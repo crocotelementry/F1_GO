@@ -350,19 +350,13 @@ func createDatabase(db *sql.DB) (*sql.DB, error) {
 }
 
 func createTables(db *sql.DB) error {
-	fmt.Println("\n")
-	fmt.Println("\n")
 	for _, stmt := range createTables {
-		fmt.Println(stmt)
 		_, err := db.Exec(stmt)
 		if err != nil {
 			db.Close()
 			return err
 		}
 	}
-
-	fmt.Println("\n")
-	fmt.Println("\n")
 
 	// We are now finished making our tables
 	// Close the connection and return success!
