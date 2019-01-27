@@ -1,24 +1,24 @@
 package main
 
 import (
-  // "encoding/json"
-  "os"
-  "fmt"
-  "bufio"
-  "strings"
-  "log"
-  "database/sql"
+	// "encoding/json"
+	"bufio"
+	"database/sql"
+	"fmt"
+	"log"
+	"os"
+	"strings"
 
-  _ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var createDB = []string{
-  `CREATE DATABASE IF NOT EXISTS F1_GO_MYSQL;`,
-  `USE F1_GO_MYSQL;`,
+	`CREATE DATABASE IF NOT EXISTS F1_GO_MYSQL;`,
+	`USE F1_GO_MYSQL;`,
 }
 
-var createTable = []string{
-  `                               CREATE TABLE IF NOT EXISTS race_event_directory(
+var createTables = []string{
+	`                               CREATE TABLE IF NOT EXISTS race_event_directory(
                                    session_uid BIGINT NOT NULL,
                                    M_packetFormat YEAR(4),
                                    packet_version FLOAT(10,6),
@@ -31,7 +31,7 @@ var createTable = []string{
 
                                  `,
 
-  `                               CREATE TABLE IF NOT EXISTS motion_data (
+	`                               CREATE TABLE IF NOT EXISTS motion_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
@@ -68,7 +68,7 @@ var createTable = []string{
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
-  `                               CREATE TABLE IF NOT EXISTS car_motion_data (
+	`                               CREATE TABLE IF NOT EXISTS car_motion_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    motion_packet_id INT NOT NULL,
                                    m_worldPositionX DECIMAL(15,10),
@@ -95,7 +95,7 @@ var createTable = []string{
 
 
                                  `,
-  `                               CREATE TABLE IF NOT EXISTS session_data (
+	`                               CREATE TABLE IF NOT EXISTS session_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
@@ -120,7 +120,7 @@ var createTable = []string{
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
-  `                               CREATE TABLE IF NOT EXISTS marshal_zone (
+	`                               CREATE TABLE IF NOT EXISTS marshal_zone (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_data_id INT NOT NULL,
                                    m_zoneStart DECIMAL(10,10),
@@ -131,14 +131,14 @@ var createTable = []string{
 
 
                                  `,
-  `                               CREATE TABLE IF NOT EXISTS lap_data (
+	`                               CREATE TABLE IF NOT EXISTS lap_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
-  `                               CREATE TABLE IF NOT EXISTS car_lap_data (
+	`                               CREATE TABLE IF NOT EXISTS car_lap_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    lap_data_id INT NOT NULL,
                                    m_lastLapTime DECIMAL(15,10),
@@ -164,7 +164,7 @@ var createTable = []string{
 
 
                                  `,
-  `                               CREATE TABLE IF NOT EXISTS event_data (
+	`                               CREATE TABLE IF NOT EXISTS event_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
@@ -175,7 +175,7 @@ var createTable = []string{
 
 
                                  `,
-  `                               CREATE TABLE IF NOT EXISTS participant_data (
+	`                               CREATE TABLE IF NOT EXISTS participant_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
@@ -183,7 +183,7 @@ var createTable = []string{
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
-  `                               CREATE TABLE IF NOT EXISTS car_participant_data (
+	`                               CREATE TABLE IF NOT EXISTS car_participant_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    participant_data_id  INT NOT NULL,
                                    m_aiControlled TINYINT,
@@ -198,14 +198,14 @@ var createTable = []string{
 
 
                                  `,
-  `                               CREATE TABLE IF NOT EXISTS setup_data (
+	`                               CREATE TABLE IF NOT EXISTS setup_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
-  `                               CREATE TABLE IF NOT EXISTS car_setup_data (
+	`                               CREATE TABLE IF NOT EXISTS car_setup_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    setup_data_id INT NOT NULL,
                                    m_frontWing DECIMAL(3,1),
@@ -234,7 +234,7 @@ var createTable = []string{
 
 
                                  `,
-  `                               CREATE TABLE IF NOT EXISTS telemetry_data (
+	`                               CREATE TABLE IF NOT EXISTS telemetry_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
@@ -242,7 +242,7 @@ var createTable = []string{
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
-  `                               CREATE TABLE IF NOT EXISTS car_telemetry_data (
+	`                               CREATE TABLE IF NOT EXISTS car_telemetry_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    telemetry_data_id INT NOT NULL,
                                    m_speed SMALLINT,
@@ -277,14 +277,14 @@ var createTable = []string{
 
 
                                  `,
-  `                               CREATE TABLE IF NOT EXISTS status_data (
+	`                               CREATE TABLE IF NOT EXISTS status_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
-  `                               CREATE TABLE IF NOT EXISTS car_status_data (
+	`                               CREATE TABLE IF NOT EXISTS car_status_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    status_data_id INT NOT NULL,
                                    m_tractionControl TINYINT,
@@ -324,144 +324,93 @@ var createTable = []string{
                                  );`,
 }
 
+func deleteDatabase(db *sql.DB) error {
+	_, err := db.Exec("DROP DATABASE F1_GO_MYSQL")
+	if err != nil {
+		db.Close()
+		return err
+	}
 
-func deleteDatabase(db *sql.DB) (error) {
-   _,err := db.Exec("DROP DATABASE F1_GO_MYSQL")
-   if err != nil {
-     db.Close()
-     return err
-   }
-
-   db.Close()
-   return nil
+	db.Close()
+	return nil
 }
 
 func createDatabase(db *sql.DB) (*sql.DB, error) {
-  for _, stmt := range createDB {
-    _, err := db.Exec(stmt)
-    if err != nil {
-      db.Close()
-      return db, err
-    }
-  }
+	for _, stmt := range createDB {
+		_, err := db.Exec(stmt)
+		if err != nil {
+			db.Close()
+			return db, err
+		}
+	}
 
-  // We are now finished making our tables
-  // Close the connection and return success!
-  return db, nil
+	// We are now finished making our tables
+	// Close the connection and return success!
+	return db, nil
 }
 
+func createTables(db *sql.DB) error {
+	fmt.Println("\n")
+	fmt.Println("\n")
+	for _, stmt := range createTables {
+		fmt.Println(stmt)
+		_, err := db.Exec(stmt)
+		if err != nil {
+			db.Close()
+			return err
+		}
+	}
 
-func createTables(db *sql.DB) (error){
-  fmt.Println("\n")
-  fmt.Println("\n")
-  for _, stmt := range createTable {
-    fmt.Println(stmt)
-    _, err := db.Exec(stmt)
-    if err != nil {
-      db.Close()
-      return err
-    }
-  }
+	fmt.Println("\n")
+	fmt.Println("\n")
 
-  fmt.Println("\n")
-  fmt.Println("\n")
-
-  // We are now finished making our tables
-  // Close the connection and return success!
-  db.Close()
-  return nil
+	// We are now finished making our tables
+	// Close the connection and return success!
+	db.Close()
+	return nil
 }
 
-func main() {
+func start_mysql() {
+	mysql_login_string_front := "root:"
+	mysql_login_string_back := "@tcp(127.0.0.1:3306)/"
 
-  mysql_login_string_front := "root:"
-  mysql_login_string_back  := "@tcp(127.0.0.1:3306)/"
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Please enter your MYSQL password to connect to your MYSQL server")
+	mysql_password, _ := reader.ReadString('\n')
+	fmt.Println("\n")
 
-  reader := bufio.NewReader(os.Stdin)
-  fmt.Println("Please enter your MYSQL password to connect to your MYSQL server")
-  mysql_password, _ := reader.ReadString('\n')
-  fmt.Println("\n")
+	db, err := sql.Open("mysql", mysql_login_string_front+mysql_password+mysql_login_string_back)
+	if err != nil {
+		log.Println("mysql: could not get a connection: %v", err)
+	}
 
-
-  db, err := sql.Open("mysql", mysql_login_string_front+mysql_password+mysql_login_string_back)
-  if err != nil {
-     log.Println("mysql: could not get a connection: %v", err)
-  }
-
-  if err := db.Ping(); err != nil {
+	if err := db.Ping(); err != nil {
 		db.Close()
 		log.Println("mysql: could not establish a good connection: %v", err)
+		fmt.Println("Exiting...")
+		os.Exit(1)
 	} else {
+		db, err = createDatabase(db)
+		if err != nil {
+			fmt.Println("Error creating F1_GO database!")
+			log.Println(err)
+			fmt.Println("Exiting...")
+			os.Exit(1)
+		}
 
-    arg := os.Args
+		fmt.Println("Successfully created F1_GO database")
+		fmt.Println("Creating database schema...")
 
-    if len(arg) > 1 && len(arg) < 3{
-      arg = os.Args[1:]  // Since the first postion is the path, our args start at postion 1
+		err = createTables(db)
+		if err != nil {
+			fmt.Println("Error creating F1_GO schema!")
+			log.Println(err)
+			fmt.Println("Exiting...")
+			os.Exit(1)
+		}
 
-      switch(arg[0]) {
-      case "create":
-        db, err = createDatabase(db)
-        if err != nil {
-          fmt.Println("Error creating F1_GO database!")
-          log.Println(err)
-          fmt.Println("Exiting...")
-          os.Exit(1)
-        }
+		fmt.Println("Successfully created F1_GO schema")
+		fmt.Println("F1_GO MYSQL database now ready for use by F1_GO!")
 
-        fmt.Println("Successfully created F1_GO database")
-        fmt.Println("Creating database schema...")
-
-        err = createTables(db)
-        if err != nil {
-          fmt.Println("Error creating F1_GO schema!")
-          log.Println(err)
-          fmt.Println("Exiting...")
-          os.Exit(1)
-        }
-
-        fmt.Println("Successfully created F1_GO schema")
-        fmt.Println("F1_GO MYSQL database now ready for use by F1_GO!")
-        fmt.Println("Exiting...")
-
-      case "delete":
-        reader := bufio.NewReader(os.Stdin)
-        fmt.Println("WARNING! You are tring to delete your F1_GO MYSQL database")
-        fmt.Println("Do you wish to continue? This step can not be reveresed")
-        fmt.Println("[ Yes ] or [ No ]: ")
-        text, _ := reader.ReadString('\n')
-        fmt.Println("\n")
-
-        switch(strings.ToLower(text)) {
-        case "no\n":
-          fmt.Println("You decided not to delete the F1_GO MYSQL database")
-          fmt.Println("Exiting...")
-        case "yes\n":
-          fmt.Println("You have decided to delete the F1_GO MYSQL database")
-          fmt.Println("Deleting....")
-          err := deleteDatabase(db)
-
-          if err != nil {
-            fmt.Println("Error with deleting F1_GO database")
-            log.Println(err)
-            fmt.Println("Exiting...")
-          } else {
-            fmt.Println("Successful in deleting F1_GO database")
-            fmt.Println("Exiting...")
-          }
-        default:
-          fmt.Println("Incorrect responce! Please try again and answer with a [ yes ] or a [ no ]")
-          os.Exit(1)
-        }
-
-      default:
-        log.Println("Incorrect usage! Please use the following formats and try agian")
-        fmt.Println("                 1. go run SQLDatabase.go [ create ]")
-        fmt.Println("                 2. go run SQLDatabase.go [ delete ]")
-      }
-    } else {
-      log.Println("Incorrect usage! Please use the following formats and try agian")
-      fmt.Println("                 1. go run SQLDatabase.go [ create ]")
-      fmt.Println("                 2. go run SQLDatabase.go [ delete ]")
-    }
-  }
+	}
 }
