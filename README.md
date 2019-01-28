@@ -68,7 +68,7 @@ $ go get github.com/fatih/color
 
 ## Usage
 *F1_GO* is ran by running the main executable. Some features that are critical to *F1_GO's* usability are able to be ran from the terminal window in which you
-start *F1_GO*, but it is not recommended. Before starting *F1_GO*, make sure your Redis database is up and running, if it isn't, start it before starting *F1_GO*.After *F1_GO* is started, all that is needed is to access the websocket from a web browser at the following address: *http://localhost:8080/*
+start *F1_GO*, but it is not recommended. Before starting *F1_GO*, make sure your Redis database is up and running, if it isn't, start it before starting *F1_GO*. After *F1_GO* is started, all that is needed is to access the websocket from a web browser at the following address: *http://localhost:8080/*
 
 To check if your Redis database is up and running:
 ```bash
