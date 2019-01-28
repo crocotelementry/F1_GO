@@ -28,6 +28,7 @@ F1_GO is Written in Go and Utilizes Websockets, Redis, and MYSQL
   * Gorilla Web Toolkit Mux
   * Redigo, a Go client for the Redis database. *Make sure this is up and running before starting F1_GO*
   * Go-MySQL-Driver, A MySQL-Driver for Go's database/sql package
+  * Color, a ANSI color package to output colorized or SGR defined output to the standard output.
 
 ---------------------------------------
 
@@ -60,12 +61,32 @@ $ go get github.com/gomodule/redigo/redis
 $ go get -u github.com/go-sql-driver/mysql
 ```
 
+**Color**
+```bash
+$ go get github.com/fatih/color
+```
+
 ## Usage
 *F1_GO* is ran by running the main executable. Some features that are critical to *F1_GO's* usability are able to be ran from the terminal window in which you
-start *F1_GO*, but it is not recommended. After *F1_GO* is started, all that is needed is to access the websocket from a web browser at the following address: *http://localhost:8080/*
+start *F1_GO*, but it is not recommended. Before starting *F1_GO*, make sure your Redis database is up and running, if it isn't, start it before starting *F1_GO*.After *F1_GO* is started, all that is needed is to access the websocket from a web browser at the following address: *http://localhost:8080/*
+
+To check if your Redis database is up and running:
+```bash
+$ redis-cli ping
+```
+
+If this returns PONG like below, then continue to starting *F1_GO*:
+```bash
+$ redis-cli ping
+PONG
+```
+If it does not return PONG, then start up your Redis database:
+```bash
+$ redis-server
+```
 
 To run *F1_GO*:
-```go
+```bash
 go run *.go
 ```
 
