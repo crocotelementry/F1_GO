@@ -1,7 +1,6 @@
 package main
 
 import (
-	// "encoding/json"
 	"bufio"
 	"database/sql"
 	"fmt"
@@ -371,12 +370,9 @@ func createDatabase(db *sql.DB) (*sql.DB, error) {
 }
 
 func createDatabaseTables(db *sql.DB) error {
-	// fmt.Println("\n")
-	// fmt.Println("\n")
 	for i, stmt := range createTables {
 
 		fmt.Print("   Create table ", tableNames[i], strings.Repeat(" ", (20-utf8.RuneCountInString(tableNames[i])))+"    ")
-		// fmt.Println("DESCRIBE ?", tableNames[i])
 		if _, err := db.Exec("DESCRIBE " + tableNames[i]); err != nil {
 			// MySQL error 1146 is "table does not exist"
 			if mErr, ok := err.(*mysql.MySQLError); ok && mErr.Number == 1146 {
@@ -402,10 +398,6 @@ func createDatabaseTables(db *sql.DB) error {
 }
 
 func start_mysql() {
-	// // Create new color objects for printing out success or errors
-	// green_print := color.New(color.Green)
-	// red_print := color.New(color.Red)
-
 	mysql_login_string_front := "root:"
 	mysql_login_string_back := "@tcp(127.0.0.1:3306)/"
 
@@ -461,10 +453,7 @@ func start_mysql() {
 			color.Green("Done")
 		}
 
-		// fmt.Println("Successfully created F1_GO tables")
 		fmt.Print("F1_GO MYSQL database   ")
 		color.Green("Done")
-		// fmt.Println("\n")
-
 	}
 }
