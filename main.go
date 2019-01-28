@@ -20,13 +20,8 @@ var (
 
 // Prints out if we connect to our databases and then the table scheme
 func logPrintFormat() {
-	ready := <-redis_ping_done
-	if ready == true {
-		fmt.Println("Successful connection made with Redis database!\n")
-	} else {
-		fmt.Println("Problem connecting with Redis database!\n")
-	}
-
+	_ = <-redis_ping_done
+	fmt.Print("\n")
 	fmt.Println("   DATE      TIME     IP    PORT    ADDRESS/EVENT  ")
 	fmt.Println("----------|--------|------|------|-----------------")
 	return
@@ -80,7 +75,10 @@ func main() {
 	flag.StringVar(&dir, "dir", "./web", "the directory to serve files from. Defaults to the current dir")
 	flag.Parse()
 
-	// Outputs a table like visual to keep track of what is outputed by our log.Orintlns
+	// Connect to or create and use F1_GO_MYSQL database
+	start_mysql()
+
+	// Outputs a table like visual to keep track of what is outputed by our log.Println's
 	go logPrintFormat()
 
 	// Create a hub object to handle our client connections and needs
