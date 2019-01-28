@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/crocotelementry/F1_GO/structs"
+	"github.com/fatih/color"
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -25,7 +26,7 @@ var (
 	Car_setup_packet   structs.PacketCarSetupData
 	Telemetry_packet   structs.PacketCarTelemetryData
 	Car_status_packet  structs.PacketCarStatusData
-	num_redis_set      = 0
+	nuM_redis_set      = 0
 	session_start_code = [4]uint8{83, 69, 78, 68}
 	session_end_code   = [4]uint8{83, 83, 84, 65}
 	redis_ping_done    = make(chan bool)
@@ -75,12 +76,15 @@ func ping(c redis.Conn) error {
 		return err
 	}
 
-	fmt.Println("PING Response = ", s)
+	// fmt.Println("PING Response = ", s)
+	fmt.Print("Redis connection       ")
 
 	if s == "PONG" {
 		redis_ping_done <- true
+		color.Green("Success")
 	} else {
 		redis_ping_done <- false
+		color.Red("Error")
 	}
 
 	// Output: PONG
@@ -116,7 +120,7 @@ func getGameData(hub *Hub) {
 		<-c
 		redis_conn.Do("FlushAll")
 		fmt.Println("\n")
-		log.Println("redis flushed")
+		log.Println("               redis flushed")
 		redis_conn.Close()
 		os.Exit(1)
 	}()
@@ -132,10 +136,12 @@ func getGameData(hub *Hub) {
 	}
 
 	// Set number of SETs to redis database to zero
-	num_redis_set := 0
+	nuM_redis_set := 0
 
 	// Redis database format:
 	// Session_uid:Frame_identifier:Packet_id
+
+	print_json_motion_packet := 0
 
 	for {
 		buf := make([]byte, 1341)
@@ -182,9 +188,9 @@ func getGameData(hub *Hub) {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_motion_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
-				num_redis_set -= 1
+				nuM_redis_set -= 1
 			}
-			num_redis_set += 1
+			nuM_redis_set += 1
 		case 1:
 			// If the packet we received is the session_packet, read its binary into our session_packet struct
 			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &Session_packet); err != nil {
@@ -206,9 +212,9 @@ func getGameData(hub *Hub) {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_session_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
-				num_redis_set -= 1
+				nuM_redis_set -= 1
 			}
-			num_redis_set += 1
+			nuM_redis_set += 1
 		case 2:
 			// If the packet we received is the lap_packet, read its binary into our lap_packet struct
 			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &Lap_packet); err != nil {
@@ -230,9 +236,9 @@ func getGameData(hub *Hub) {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_lap_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
-				num_redis_set -= 1
+				nuM_redis_set -= 1
 			}
-			num_redis_set += 1
+			nuM_redis_set += 1
 		case 3:
 			// If the packet we received is the event_packet, read its binary into our event_packet struct
 			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &Event_packet); err != nil {
@@ -270,7 +276,7 @@ func getGameData(hub *Hub) {
 					if session_UIDs_SADD_integer_reply == int64(0) {
 						fmt.Println("\nSession with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", Event_packet.M_header.M_sessionUID, "\n")
 					} else {
-						num_redis_set = 0
+						nuM_redis_set = 0
 					}
 				} else {
 					if _, err := redis_conn.Do("SET", "session_UIDs", (Event_packet.M_header.M_sessionUID)); err != nil {
@@ -286,7 +292,7 @@ func getGameData(hub *Hub) {
 				// Send the Udp_data struct containing the packet_id and the packet itself over the hub.bradcast channel to
 				// be broadcasted to all connected clients
 				hub.broadcast <- &Udp_data{
-					Id: 3,
+					Id: 30,
 					Save_to_database_alert: Save_to_database_alerts{
 						date:   "now, lol plz fix this later",
 						length: 69,
@@ -320,9 +326,9 @@ func getGameData(hub *Hub) {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_participant_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
-				num_redis_set -= 1
+				nuM_redis_set -= 1
 			}
-			num_redis_set += 1
+			nuM_redis_set += 1
 		case 5:
 			// If the packet we received is the car_setup_packet, read its binary into our car_setup_packet struct
 			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &Car_setup_packet); err != nil {
@@ -344,9 +350,9 @@ func getGameData(hub *Hub) {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_car_setup_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
-				num_redis_set -= 1
+				nuM_redis_set -= 1
 			}
-			num_redis_set += 1
+			nuM_redis_set += 1
 		case 6:
 			// If the packet we received is the telemetry_packet, read its binary into our telemetry_packet struct
 			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &Telemetry_packet); err != nil {
@@ -368,9 +374,9 @@ func getGameData(hub *Hub) {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_telemetry_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
-				num_redis_set -= 1
+				nuM_redis_set -= 1
 			}
-			num_redis_set += 1
+			nuM_redis_set += 1
 		case 7:
 			// If the packet we received is the car_status_packet, read its binary into our car_status_packet struct
 			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &Car_status_packet); err != nil {
@@ -392,9 +398,9 @@ func getGameData(hub *Hub) {
 
 			if _, err := redis_conn.Do("SET", objectPrefix+strconv.Itoa(int(header.M_packetId)), json_car_status_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
-				num_redis_set -= 1
+				nuM_redis_set -= 1
 			}
-			num_redis_set += 1
+			nuM_redis_set += 1
 		default:
 			continue
 		}
