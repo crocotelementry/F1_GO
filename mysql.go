@@ -8,13 +8,34 @@ import (
 	"log"
 	"os"
 	"strings"
+	"unicode/utf8"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/fatih/color"
+	"github.com/go-sql-driver/mysql"
 )
 
 var createDB = []string{
 	`CREATE DATABASE IF NOT EXISTS F1_GO_MYSQL;`,
 	`USE F1_GO_MYSQL;`,
+}
+
+var tableNames = []string{
+	`race_event_directory`,
+	`motion_data`,
+	`car_motion_data`,
+	`session_data`,
+	`marshal_zone`,
+	`lap_data`,
+	`car_lap_data`,
+	`event_data`,
+	`participant_data`,
+	`car_participant_data`,
+	`setup_data`,
+	`car_setup_data`,
+	`telemetry_data`,
+	`car_telemetry_data`,
+	`status_data`,
+	`car_status_data`,
 }
 
 var createTables = []string{
@@ -349,12 +370,28 @@ func createDatabase(db *sql.DB) (*sql.DB, error) {
 	return db, nil
 }
 
-func createTables(db *sql.DB) error {
-	for _, stmt := range createTables {
-		_, err := db.Exec(stmt)
-		if err != nil {
-			db.Close()
-			return err
+func createDatabaseTables(db *sql.DB) error {
+	// fmt.Println("\n")
+	// fmt.Println("\n")
+	for i, stmt := range createTables {
+
+		fmt.Print("   Create table ", tableNames[i], strings.Repeat(" ", (20-utf8.RuneCountInString(tableNames[i])))+"    ")
+		// fmt.Println("DESCRIBE ?", tableNames[i])
+		if _, err := db.Exec("DESCRIBE " + tableNames[i]); err != nil {
+			// MySQL error 1146 is "table does not exist"
+			if mErr, ok := err.(*mysql.MySQLError); ok && mErr.Number == 1146 {
+
+				_, err := db.Exec(stmt)
+				if err != nil {
+					color.Red("Error")
+					db.Close()
+					return err
+				} else {
+					color.Green("Success")
+				}
+			}
+		} else {
+			color.Yellow("Exists")
 		}
 	}
 
@@ -365,13 +402,20 @@ func createTables(db *sql.DB) error {
 }
 
 func start_mysql() {
+	// // Create new color objects for printing out success or errors
+	// green_print := color.New(color.Green)
+	// red_print := color.New(color.Red)
+
 	mysql_login_string_front := "root:"
 	mysql_login_string_back := "@tcp(127.0.0.1:3306)/"
 
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Please enter your MYSQL password to connect to your MYSQL server")
-	mysql_password, _ := reader.ReadString('\n')
-	fmt.Println("\n")
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Println("Please enter your MYSQL password to connect to your MYSQL server:  ")
+	fmt.Println("      user:      root")
+	fmt.Print("      password:  ")
+	scanner.Scan()
+	mysql_password := scanner.Text()
+	fmt.Print("\n")
 
 	db, err := sql.Open("mysql", mysql_login_string_front+mysql_password+mysql_login_string_back)
 	if err != nil {
@@ -384,27 +428,43 @@ func start_mysql() {
 		fmt.Println("Exiting...")
 		os.Exit(1)
 	} else {
-		db, err = createDatabase(db)
+
+		fmt.Print("Create F1_GO database  ")
+		if _, err := db.Exec("USE F1_GO_MYSQL"); err != nil {
+			// MySQL error 1049 is "database does not exist"
+			if mErr, ok := err.(*mysql.MySQLError); ok && mErr.Number == 1049 {
+
+				db, err = createDatabase(db)
+				if err != nil {
+					color.Red("Error")
+					fmt.Println("Error creating F1_GO database!")
+					log.Println(err)
+					fmt.Println("Exiting...")
+					os.Exit(1)
+				} else {
+					color.Green("Success")
+				}
+			}
+		} else {
+			color.Yellow("Exists")
+		}
+
+		err = createDatabaseTables(db)
+		fmt.Print("F1_GO MYSQL tables     ")
 		if err != nil {
-			fmt.Println("Error creating F1_GO database!")
+			color.Red("Error")
+			fmt.Println("Error creating F1_GO tables!")
 			log.Println(err)
 			fmt.Println("Exiting...")
 			os.Exit(1)
+		} else {
+			color.Green("Done")
 		}
 
-		fmt.Println("Successfully created F1_GO database")
-		fmt.Println("Creating database schema...")
-
-		err = createTables(db)
-		if err != nil {
-			fmt.Println("Error creating F1_GO schema!")
-			log.Println(err)
-			fmt.Println("Exiting...")
-			os.Exit(1)
-		}
-
-		fmt.Println("Successfully created F1_GO schema")
-		fmt.Println("F1_GO MYSQL database now ready for use by F1_GO!")
+		// fmt.Println("Successfully created F1_GO tables")
+		fmt.Print("F1_GO MYSQL database   ")
+		color.Green("Done")
+		// fmt.Println("\n")
 
 	}
 }
