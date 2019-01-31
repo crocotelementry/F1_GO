@@ -141,8 +141,6 @@ func getGameData(hub *Hub) {
 	// Redis database format:
 	// Session_uid:Frame_identifier:Packet_id
 
-	print_json_motion_packet := 0
-
 	for {
 		buf := make([]byte, 1341)
 		_, _, err := sock.ReadFromUDP(buf)
