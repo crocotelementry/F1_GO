@@ -78,7 +78,7 @@ func main() {
 	// Connect to or create and use F1_GO_MYSQL database
 	start_mysql()
 
-	// Outputs a table like visual to keep track of what is outputed by our log.Println's
+	// Outputs a table like visual to keep track of what is outputed by our log.Orintlns
 	go logPrintFormat()
 
 	// Create a hub object to handle our client connections and needs
@@ -99,7 +99,7 @@ func main() {
 	// Landing page /aka live telemetry or telemetry_dashboard
 	router.HandleFunc("/", liveHandler)
 	router.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serve_ws("live", live_hub, w, r)
+		serve_ws("dashboard", live_hub, w, r)
 	})
 
 	// History page /aka history_dashboard
