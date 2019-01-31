@@ -7,38 +7,38 @@ import (
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
 type Hub struct {
-	// Registered live clients.
+	// All Registered clients
+	all_clients map[*Client]bool
+	// Registered live live_clients
 	live_clients map[*Client]bool
-
-	// Registered notlive clients.
-	notlive_clients map[*Client]bool
+	// Registered dashboard clients.
+	dashboard_clients map[*Client]bool
+	// Registered history clients.
+	history_clients map[*Client]bool
+	// Registered time clients
+	time_clients map[*Client]bool
 
 	// Inbound messages from F1 2018 UDP to be broacasted to connected clients
 	broadcast chan *Udp_data
 
-	// Register requests from the live clients.
-	live_register chan *Client
+	// Register requests from the clients.
+	register chan *Client
 
-	// Register requests from the notlive clients.
-	notlive_register chan *Client
-
-	// Unregister requests from live clients.
-	live_unregister chan *Client
-
-	// Unregister requests from notlive clients.
-	notlive_unregister chan *Client
+	// Unregister requests from clients.
+	unregister chan *Client
 }
 
 // Creates a new hub
 func newHub() *Hub {
 	return &Hub{
-		broadcast:          make(chan *Udp_data),
-		live_register:      make(chan *Client),
-		notlive_register:   make(chan *Client),
-		live_unregister:    make(chan *Client),
-		notlive_unregister: make(chan *Client),
-		live_clients:       make(map[*Client]bool),
-		notlive_clients:    make(map[*Client]bool),
+		broadcast:         make(chan *Udp_data),
+		register:          make(chan *Client),
+		unregister:        make(chan *Client),
+		all_clients:       make(map[*Client]bool),
+		live_clients:      make(map[*Client]bool),
+		dashboard_clients: make(map[*Client]bool),
+		history_clients:   make(map[*Client]bool),
+		time_clients:      make(map[*Client]bool),
 	}
 
 }
@@ -48,70 +48,93 @@ func newHub() *Hub {
 func (h *Hub) run() {
 	for {
 		select {
-		// If we have a new live client connecting!
-		case client := <-h.live_register:
-			h.live_clients[client] = true
-			log.Println("", client.conn.RemoteAddr(), " ", "live client opened")
-		// If we have a new notlive client connecting!
-		case client := <-h.notlive_register:
-			h.notlive_clients[client] = true
-			log.Println("", client.conn.RemoteAddr(), " ", "history client opened")
-
-			// If we have a live client that is disconnecting
-		case client := <-h.live_unregister:
-			if _, ok := h.live_clients[client]; ok {
-				log.Println("", client.conn.RemoteAddr(), " ", "live client closed")
-				delete(h.live_clients, client)        // Delete the client
-				close(client.Motion_packet_send)      // Close all the different packet channels!
-				close(client.Session_packet_send)     // ..
-				close(client.Lap_packet_send)         // ..
-				close(client.Event_packet_send)       // ..
-				close(client.Participant_packet_send) // ..
-				close(client.Car_setup_packet_send)   // ..
-				close(client.Telemetry_packet_send)   // ..
-				close(client.Car_status_packet_send)  // ..
-				close(client.Save_to_database_alert)  // ..
+		// If we have a new dashboard client connecting!
+		case client := <-h.register:
+			switch client.conn_type {
+			case "dashboard":
+				h.live_clients[client] = true
+				h.dashboard_clients[client] = true
+				h.all_clients[client] = true
+				log.Println("", client.conn.RemoteAddr(), " ", "dashboard client opened")
+			case "time":
+				h.live_clients[client] = true
+				h.time_clients[client] = true
+				h.all_clients[client] = true
+				log.Println("", client.conn.RemoteAddr(), " ", "time client opened")
+			case "history":
+				h.history_clients[client] = true
+				h.all_clients[client] = true
+				log.Println("", client.conn.RemoteAddr(), " ", "history client opened")
 			}
-			// If we have a notlive client that is disconnecting
-		case client := <-h.notlive_unregister:
-			if _, ok := h.notlive_clients[client]; ok {
-				log.Println("", client.conn.RemoteAddr(), " ", "history client closed")
-				delete(h.notlive_clients, client)    // Delete the client
-				close(client.Save_to_database_alert) // Close the packet channel!
+
+		// If we have a new client that disconected
+		case client := <-h.unregister:
+			switch client.conn_type {
+			case "dashboard":
+				if _, ok := h.dashboard_clients[client]; ok {
+					log.Println("", client.conn.RemoteAddr(), " ", "dashboard client closed")
+					delete(h.dashboard_clients, client)  // Delete the client
+					delete(h.live_clients, client)       // Delete the client
+					delete(h.all_clients, client)        // Delete the client
+					close(client.Session_packet_send)    // Close all the different packet channels!
+					close(client.Lap_packet_send)        // ..
+					close(client.Telemetry_packet_send)  // ..
+					close(client.Car_status_packet_send) // ..
+					close(client.Save_to_database_alert) // ..
+				}
+			case "time":
+				if _, ok := h.time_clients[client]; ok {
+					log.Println("", client.conn.RemoteAddr(), " ", "time client closed")
+					delete(h.time_clients, client)       // Delete the client
+					delete(h.live_clients, client)       // Delete the client
+					delete(h.all_clients, client)        // Delete the client
+					close(client.Lap_packet_send)        // Close all the different packet channels!
+					close(client.Save_to_database_alert) // ..
+				}
+			case "history":
+				if _, ok := h.history_clients[client]; ok {
+					log.Println("", client.conn.RemoteAddr(), " ", "history client closed")
+					delete(h.history_clients, client)    // Delete the client
+					delete(h.all_clients, client)        // Delete the client
+					close(client.Save_to_database_alert) // Close the packet channel!
+				}
 			}
 
 		// If we have a message to broadcast
 		case message := <-h.broadcast:
-			// If the message we receive is a Save_to_database_alert, then send that right away over all websockets, including notlive
-			// -30 is a code used by journalists to signilize end of article, so 30 will symbolize end of session, send a Save_to_database_alert
-			if message.Id == 30 {
-				for client := range h.notlive_clients {
+			switch message.Id {
+			case 1:
+				for client := range h.dashboard_clients { // Loop through all our clients
+					client.Session_packet_send <- message.Session_packet
+				}
+			case 2:
+				for client := range h.dashboard_clients { // Loop through all our dashboard clients
+					client.Lap_packet_send <- message.Lap_packet
+				}
+				for client := range h.time_clients { // Loop through all our time clients
+					client.Lap_packet_send <- message.Lap_packet
+				}
+			case 6:
+				for client := range h.dashboard_clients { // Loop through all our clients
+					client.Telemetry_packet_send <- message.Telemetry_packet
+				}
+			case 7:
+				for client := range h.dashboard_clients { // Loop through all our clients
+					client.Car_status_packet_send <- message.Car_status_packet
+				}
+			case 30:
+				log.Println(" ", "End of race code received. Sending Save_to_database_alert to clients")
+				for client := range h.all_clients { // Loop through all our clients
 					client.Save_to_database_alert <- message.Save_to_database_alert
+				}
+			default:
+				// Packet is either not a valid packet number or it is from packets with ids of:
+				// 0, 3, 4, 5
+				if message.Id != 0 && message.Id != 3 && message.Id != 4 && message.Id != 5 {
+					log.Println("Invalid broadcast message, id=", message.Id)
 				}
 			}
 
-			for client := range h.live_clients { // Loop through all our clients
-				switch message.Id { // Depending on what packet we have to send, send that packet
-				case 0:
-					client.Motion_packet_send <- message.Motion_packet
-				case 1:
-					client.Session_packet_send <- message.Session_packet
-				case 2:
-					client.Lap_packet_send <- message.Lap_packet
-				case 3:
-					client.Event_packet_send <- message.Event_packet
-				case 4:
-					client.Participant_packet_send <- message.Participant_packet
-				case 5:
-					client.Car_setup_packet_send <- message.Car_setup_packet
-				case 6:
-					client.Telemetry_packet_send <- message.Telemetry_packet
-				case 7:
-					client.Car_status_packet_send <- message.Car_status_packet
-				case 30:
-					client.Save_to_database_alert <- message.Save_to_database_alert
-				}
-			}
 		}
 	}
 }
