@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	// "bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -32,6 +32,7 @@ var (
 )
 
 var upgrader = websocket.Upgrader{
+	EnableCompression: true,
 	// ReadBufferSize:  1341,
 	// WriteBufferSize: 1341,
 }
@@ -66,93 +67,21 @@ type Client struct {
 	Save_to_database_alert  chan Save_to_database_alerts
 }
 
-// readPump pumps messages from the websocket connection to the hub.
+// writeDashboard pumps messages from the hub to the websocket connection.
 //
-// The application runs readPump in a per-connection goroutine. The application
-// ensures that there is at most one reader on a connection by executing all
-// reads from this goroutine.
-func (c *Client) fetchHistory() {
-	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		c.hub.notlive_unregister <- c
-		c.conn.Close()
-	}()
-	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-	for {
-		_, message, err := c.conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
-			}
-			break
-		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-
-		// Fetch that data it wants from database and send it over the ws
-		select {
-		case message, ok := <-c.Save_to_database_alert:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
-			if !ok {
-				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("!ok problem with Save_to_database_alert")
-				return
-			}
-			// Marshal our message into json so we can send it over the websocket
-			json_message_marshaled, err := json.Marshal(message)
-			if err != nil {
-				fmt.Println(err)
-			}
-			// Write our JSON formatted F1 UDP packet struct to our websocket
-			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
-				return
-			}
-
-		case <-ticker.C: // If our ticker has reached its time
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
-
-			// If our client has disconected from the websocket on thier end, close the client and its connection by returning and executing our defer statement
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				return
-			}
-		}
-	}
-}
-
-// writePump pumps messages from the hub to the websocket connection.
-//
-// A goroutine running writePump is started for each connection. The
+// A goroutine running writeDashboard is started for each connection to dashboard. The
 // application ensures that there is at most one writer to a connection by
 // executing all writes from this goroutine.
-func (c *Client) writePump() {
+func (c *Client) writeDashboard() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
+		log.Println("", c.conn.RemoteAddr(), " ", "Stopping dashboard clients ticker, unregistering, and closing connection")
 		ticker.Stop()
-		c.hub.live_unregister <- c
+		c.hub.unregister <- c
 		c.conn.Close()
 	}()
 	for {
 		select {
-		case message, ok := <-c.Motion_packet_send: // If we have a good message, then send it over the clients websocket
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
-			if !ok {
-				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("!ok problem with Motion_packet_send")
-				return
-			}
-			// Marshal our message into json so we can send it over the websocket
-			json_message_marshaled, err := json.Marshal(message)
-			if err != nil {
-				fmt.Println(err)
-			}
-			// Write our JSON formatted F1 UDP packet struct to our websocket
-			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
-				return
-			}
-
 		case message, ok := <-c.Session_packet_send:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 			if !ok {
@@ -168,6 +97,7 @@ func (c *Client) writePump() {
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with writing Session_packet_send to dashboard websocket")
 				return
 			}
 
@@ -186,60 +116,7 @@ func (c *Client) writePump() {
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
-				return
-			}
-
-		case message, ok := <-c.Event_packet_send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
-			if !ok {
-				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("if !ok problem with Event_packet_send")
-				return
-			}
-			// Marshal our message into json so we can send it over the websocket
-			json_message_marshaled, err := json.Marshal(message)
-			if err != nil {
-				fmt.Println(err)
-			}
-			// Write our JSON formatted F1 UDP packet struct to our websocket
-			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
-				return
-			}
-
-		case message, ok := <-c.Participant_packet_send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
-			if !ok {
-				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("!ok problem with Participant_packet_send")
-				return
-			}
-			// Marshal our message into json so we can send it over the websocket
-			json_message_marshaled, err := json.Marshal(message)
-			if err != nil {
-				fmt.Println(err)
-			}
-			// Write our JSON formatted F1 UDP packet struct to our websocket
-			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
-				return
-			}
-
-		case message, ok := <-c.Car_setup_packet_send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
-			if !ok {
-				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				log.Println("!ok problem with Car_setup_packet_sends")
-				return
-			}
-			// Marshal our message into json so we can send it over the websocket
-			json_message_marshaled, err := json.Marshal(message)
-			if err != nil {
-				fmt.Println(err)
-			}
-			// Write our JSON formatted F1 UDP packet struct to our websocket
-			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with writing Lap_packet_send to dashboard websocket")
 				return
 			}
 
@@ -258,6 +135,7 @@ func (c *Client) writePump() {
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with writing Telemetry_packet_send to dashboard websocket")
 				return
 			}
 
@@ -276,6 +154,7 @@ func (c *Client) writePump() {
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with writing Car_status_packet_send to dashboard websocket")
 				return
 			}
 
@@ -294,6 +173,7 @@ func (c *Client) writePump() {
 			}
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with writing Save_to_database_alert to dashboard websocket")
 				return
 			}
 
@@ -302,6 +182,122 @@ func (c *Client) writePump() {
 
 			// If our client has disconected from the websocket on thier end, close the client and its connection by returning and executing our defer statement
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with ticker pingmessage with dashboard client")
+				return
+			}
+		}
+	}
+}
+
+// writeHistory pumps messages from the websocket connection to the hub.
+//
+// A goroutine running writeHistory is started for each connection to history. The
+// application ensures that there is at most one writer to a connection by
+// executing all writes from this goroutine.
+func (c *Client) writeHistory() {
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		log.Println("", c.conn.RemoteAddr(), " ", "Stopping notlive clients ticker, unregistering, and closing connection")
+		ticker.Stop()
+		c.hub.unregister <- c
+		c.conn.Close()
+	}()
+	for {
+
+		// Fetch that data it wants from database and send it over the ws
+		select {
+		case message, ok := <-c.Save_to_database_alert:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
+			if !ok {
+				// The hub closed the channel.
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				log.Println("!ok problem with Save_to_database_alert")
+				return
+			}
+
+			// Marshal our message into json so we can send it over the websocket
+			json_message_marshaled, err := json.Marshal(message)
+			if err != nil {
+				log.Println(err)
+			}
+
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with writing Save_to_database_alert to notlive websocket")
+				return
+			}
+
+		case <-ticker.C: // If our ticker has reached its time
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
+
+			// If our client has disconected from the websocket on thier end, close the client and its connection by returning and executing our defer statement
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with ticker pingmessage with notlive client")
+				return
+			}
+		}
+	}
+}
+
+// writeTime pumps messages from the hub to the websocket connection.
+//
+// A goroutine running writeTime is started for each connection to time. The
+// application ensures that there is at most one writer to a connection by
+// executing all writes from this goroutine.
+func (c *Client) writeTime() {
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		log.Println("", c.conn.RemoteAddr(), " ", "Stopping time clients ticker, unregistering, and closing connection")
+		ticker.Stop()
+		c.hub.unregister <- c
+		c.conn.Close()
+	}()
+	for {
+		select {
+		case message, ok := <-c.Lap_packet_send:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
+			if !ok {
+				// The hub closed the channel.
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				log.Println("!ok problem with Lap_packet_send")
+				return
+			}
+			// Marshal our message into json so we can send it over the websocket
+			json_message_marshaled, err := json.Marshal(message)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with writing Lap_packet_send to time websocket")
+				return
+			}
+
+		case message, ok := <-c.Save_to_database_alert:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
+			if !ok {
+				// The hub closed the channel.
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				log.Println("!ok problem with Save_to_database_alert")
+				return
+			}
+			// Marshal our message into json so we can send it over the websocket
+			json_message_marshaled, err := json.Marshal(message)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with writing Save_to_database_alert to time websocket")
+				return
+			}
+
+		case <-ticker.C: // If our ticker has reached its time
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
+
+			// If our client has disconected from the websocket on thier end, close the client and its connection by returning and executing our defer statement
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with ticker pingmessage with time client")
 				return
 			}
 		}
@@ -316,43 +312,52 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// If our websocket connection is from live or time
-	if conn_type == "live" || conn_type == "time" {
+	switch conn_type {
+	case "dashboard":
 		client := &Client{
-			hub:                     hub,
-			conn_type:               conn_type,
-			conn:                    conn,
-			Motion_packet_send:      make(chan structs.PacketMotionData),
-			Session_packet_send:     make(chan structs.PacketSessionData),
-			Lap_packet_send:         make(chan structs.PacketLapData),
-			Event_packet_send:       make(chan structs.PacketEventData),
-			Participant_packet_send: make(chan structs.PacketParticipantsData),
-			Car_setup_packet_send:   make(chan structs.PacketCarSetupData),
-			Telemetry_packet_send:   make(chan structs.PacketCarTelemetryData),
-			Car_status_packet_send:  make(chan structs.PacketCarStatusData),
-			Save_to_database_alert:  make(chan Save_to_database_alerts),
+			hub:                    hub,
+			conn_type:              conn_type,
+			conn:                   conn,
+			Session_packet_send:    make(chan structs.PacketSessionData),
+			Lap_packet_send:        make(chan structs.PacketLapData),
+			Telemetry_packet_send:  make(chan structs.PacketCarTelemetryData),
+			Car_status_packet_send: make(chan structs.PacketCarStatusData),
+			Save_to_database_alert: make(chan Save_to_database_alerts),
 		}
-		client.hub.live_register <- client
+		client.hub.register <- client
 
 		// Allow collection of memory referenced by the caller by doing all work in
 		// new goroutines.
-		go client.writePump()
-		// go client.readPump() // Not used since these connections dont need to send data, only receive.
+		go client.writeDashboard()
 
-	} else if conn_type == "history" { // If our websocket connection is from history
+	case "history":
 		client := &Client{
 			hub:                    hub,
 			conn_type:              conn_type,
 			conn:                   conn,
 			Save_to_database_alert: make(chan Save_to_database_alerts),
 		}
-		client.hub.notlive_register <- client
+		client.hub.register <- client
 
 		// Allow collection of memory referenced by the caller by doing all work in
 		// new goroutines.
-		go client.fetchHistory()
+		go client.writeHistory()
 
-	} else {
+	case "time":
+		client := &Client{
+			hub:                    hub,
+			conn_type:              conn_type,
+			conn:                   conn,
+			Lap_packet_send:        make(chan structs.PacketLapData),
+			Save_to_database_alert: make(chan Save_to_database_alerts),
+		}
+		client.hub.register <- client
+
+		// Allow collection of memory referenced by the caller by doing all work in
+		// new goroutines.
+		go client.writeTime()
+
+	default:
 		log.Println("ws client type is invalid, type:", conn_type)
 		return
 	}
