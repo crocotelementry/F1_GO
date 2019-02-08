@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/crocotelementry/F1_GO/structs"
 	"github.com/fatih/color"
@@ -28,6 +29,9 @@ var (
 	Car_setup_packet                       structs.PacketCarSetupData
 	Telemetry_packet                       structs.PacketCarTelemetryData
 	Car_status_packet                      structs.PacketCarStatusData
+	race_event_directory_struct            structs.RaceEventDirectory
+	Session_start                          structs.Session_start
+	Session_end                            structs.Session_end
 	session_start_code                     = [4]uint8{83, 69, 78, 68}
 	session_end_code                       = [4]uint8{83, 83, 84, 65}
 	redis_ping_done                        = make(chan bool)
@@ -48,6 +52,7 @@ var (
 	atm_car_setup_packet                   = make(chan structs.PacketCarSetupData)
 	atm_telemetry_packet                   = make(chan structs.PacketCarTelemetryData)
 	atm_car_status_packet                  = make(chan structs.PacketCarStatusData)
+	atm_race_event_directory               = make(chan structs.RaceEventDirectory)
 	redis_done                             = make(chan bool)
 )
 
@@ -140,6 +145,43 @@ func getRedisData() {
 	fmt.Println("chosen_session_uid:", chosen_session_uid)
 
 	go add_to_longterm_storage()
+
+	// Send over the initial data for race_event_directory
+	race_event_directory_data, err := (redis_conn.Do("GET", chosen_session_uid+":0:Incrementing_packet_number"))
+	if err != nil {
+		log.Println("Getting initial data for race_event_directory from redis database failed:", err)
+	}
+
+	err = json.Unmarshal(race_event_directory_data.([]byte), &Motion_packet)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// atm_race_event_directory <- Header
+
+	// Send over our session_start_time and session_end_time
+	// Send over the initial data for race_event_directory
+	session_start_time, err := (redis_conn.Do("GET", chosen_session_uid+":session_start_time"))
+	if err != nil {
+		log.Println("Getting session_start_time from redis database failed:", err)
+	}
+
+	session_end_time, err := (redis_conn.Do("GET", chosen_session_uid+":session_end_time"))
+	if err != nil {
+		log.Println("Getting session_end_time from redis database failed:", err)
+	}
+
+	err = json.Unmarshal(session_start_time.([]byte), &Session_start)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	err = json.Unmarshal(session_end_time.([]byte), &Session_end)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	atm_race_event_directory <- structs.RaceEventDirectory{Motion_packet.M_header, Session_start.Session_start_time, Session_end.Session_end_time}
 
 	for packet_type := 0; packet_type < 8; packet_type += 1 {
 		max_packet_number, err := redis.Int(redis_conn.Do("GET", chosen_session_uid+":"+strconv.Itoa(packet_type)+":Incrementing_packet_number"))
@@ -284,7 +326,7 @@ func getGameData(hub *Hub) {
 	incrementing_packet_number := 0
 
 	// Redis database format:
-	// Session_uid:packet_id:incrementing_packet_number				This is for packets
+	// Session_uid:packet_id:incrementing_packet_number									This is for packets
 	// Session_uid:"Incrementing_packet_number"								This is for knowing the max value of incrementing_packet_number
 	// session_UIDs																						This is a list for keeping track of what session_UIDs are in the redis database
 
@@ -427,11 +469,20 @@ func getGameData(hub *Hub) {
 					if session_UIDs_SADD_integer_reply == int64(0) {
 						fmt.Println("\nSession with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", Event_packet.M_header.M_sessionUID, "\n")
 					}
-
+					// else {
+					// 	incrementing_packet_number = 0
+					// }
 				} else {
 					if _, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID)); err != nil {
 						fmt.Println("Setting number_of_sessions to 1 failed:", err)
 					}
+				}
+
+				// Add session start time to redis database
+				// Format is as follows:
+				// Session_UID:session_start_time
+				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":session_start_time"), &structs.Session_start{time.Now()}); err != nil {
+					fmt.Println("Setting session_start_time to failed:", err)
 				}
 			}
 
@@ -439,7 +490,12 @@ func getGameData(hub *Hub) {
 			// term use in a MYSQL database, discard the session, or hold on to it until our redis database reaches its size limit or its amount
 			// of sessions limit.
 			if Equal(Event_packet.M_eventStringCode, session_end_code) {
+
+				// fmt.Println(strconv.FormatUint(Event_packet.M_header.M_sessionUID, 10) + ":Incrementing_packet_number")
+
 				sue_return := session_UID_exists(Event_packet.M_header.M_sessionUID)
+
+				// fmt.Println(sue_return)
 
 				if sue_return == false {
 					_, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID))
@@ -447,6 +503,23 @@ func getGameData(hub *Hub) {
 						fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
 					}
 				}
+
+				// Add session end time to redis database
+				// Format is as follows:
+				// Session_UID:session_end_time
+				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":session_end_time"), &structs.Session_end{time.Now()}); err != nil {
+					fmt.Println("Setting session_end_time to failed:", err)
+				}
+
+				// fmt.Println("incrementing_packet_number", incrementing_packet_number)
+				// fmt.Println((strconv.FormatUint(header.M_sessionUID, 10) + ":0:Incrementing_packet_number"), "0:Incrementing_packet_number", incrementing_motion_packet_number)
+				// fmt.Println("1:Incrementing_packet_number", incrementing_session_packet_number)
+				// fmt.Println("2:Incrementing_packet_number", incrementing_lap_packet_number)
+				// fmt.Println("3:Incrementing_packet_number", incrementing_event_packet_number)
+				// fmt.Println("4:Incrementing_packet_number", incrementing_participant_packet_number)
+				// fmt.Println("5:Incrementing_packet_number", incrementing_car_setup_packet_number)
+				// fmt.Println("6:Incrementing_packet_number", incrementing_telemetry_packet_number)
+				// fmt.Println("7:Incrementing_packet_number", incrementing_car_status_packet_number)
 
 				// Session_uid:Incrementing_packet_number
 				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":Incrementing_packet_number"), strconv.Itoa(int(incrementing_packet_number))); err != nil {
@@ -503,6 +576,8 @@ func getGameData(hub *Hub) {
 				incrementing_telemetry_packet_number = 0
 				incrementing_car_status_packet_number = 0
 				incrementing_packet_number = 0
+
+				go getRedisData()
 
 				// Send the Udp_data struct containing the packet_id and the packet itself over the hub.bradcast channel to
 				// be broadcasted to all connected clients
