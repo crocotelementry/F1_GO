@@ -46,7 +46,7 @@ var tableNames = []string{
 
 var createTables = []string{
 	`                               CREATE TABLE IF NOT EXISTS race_event_directory(
-                                   session_uid BIGINT NOT NULL,
+                                   session_uid BIGINT UNSIGNED NOT NULL,
                                    M_packetFormat YEAR(4),
                                    packet_version FLOAT(10,6),
                                    player_car_index TINYINT,
@@ -61,39 +61,39 @@ var createTables = []string{
 
 	`                               CREATE TABLE IF NOT EXISTS motion_data (
                                    id INT NOT NULL AUTO_INCREMENT,
-                                   session_uid BIGINT NOT NULL,
+                                   session_uid BIGINT UNSIGNED NOT NULL,
                                    frame_identifier int NOT NULL,
-																	 session_time DECIMAL(15,10),
-                                   suspension_position_rl DECIMAL(15,10),
-                                   suspension_position_rr DECIMAL(15,10),
-                                   suspension_position_fl DECIMAL(15,10),
-                                   suspension_position_fr DECIMAL(15,10),
-                                   M_suspensionVelocity_rl DECIMAL(15,10),
-                                   M_suspensionVelocity_rr DECIMAL(15,10),
-                                   M_suspensionVelocity_fl DECIMAL(15,10),
-                                   M_suspensionVelocity_fr DECIMAL(15,10),
-                                   suspension_acceleration_rl DECIMAL(15,10),
-                                   suspension_acceleration_rr DECIMAL(15,10),
-                                   suspension_acceleration_fl DECIMAL(15,10),
-                                   suspension_acceleration_fr DECIMAL(15,10),
-                                   wheel_speed_rl DECIMAL(15,10),
-                                   wheel_speed_rr DECIMAL(15,10),
-                                   wheel_speed_fl DECIMAL(15,10),
-                                   wheel_speed_fr DECIMAL(15,10),
-                                   wheel_slip_rl DECIMAL(15,10),
-                                   wheel_slip_rr  DECIMAL(15,10),
-                                   wheel_slip_fl DECIMAL(15,10),
-                                   wheel_slip_fr DECIMAL(15,10),
-                                   local_velocity_x DECIMAL(15,10),
-                                   local_velocity_y DECIMAL(15,10),
-                                   local_velocity_z DECIMAL(15,10),
-                                   angular_velocity_x DECIMAL(15,10),
-                                   angular_velocity_y DECIMAL(15,10),
-                                   angular_velocity_z DECIMAL(15,10),
-                                   angular_acceleration_x DECIMAL(15,10),
-                                   angular_acceleration_y DECIMAL(15,10),
-                                   angular_acceleration_z DECIMAL(15,10),
-                                   front_wheels_angle DECIMAL(15,10),
+																	 session_time DECIMAL(16,10),
+                                   suspension_position_rl DECIMAL(16,10),
+                                   suspension_position_rr DECIMAL(16,10),
+                                   suspension_position_fl DECIMAL(16,10),
+                                   suspension_position_fr DECIMAL(16,10),
+                                   M_suspensionVelocity_rl DECIMAL(16,10),
+                                   M_suspensionVelocity_rr DECIMAL(16,10),
+                                   M_suspensionVelocity_fl DECIMAL(16,10),
+                                   M_suspensionVelocity_fr DECIMAL(16,10),
+                                   suspension_acceleration_rl DECIMAL(16,10),
+                                   suspension_acceleration_rr DECIMAL(16,10),
+                                   suspension_acceleration_fl DECIMAL(16,10),
+                                   suspension_acceleration_fr DECIMAL(16,10),
+                                   wheel_speed_rl DECIMAL(16,10),
+                                   wheel_speed_rr DECIMAL(16,10),
+                                   wheel_speed_fl DECIMAL(16,10),
+                                   wheel_speed_fr DECIMAL(16,10),
+                                   wheel_slip_rl DECIMAL(16,10),
+                                   wheel_slip_rr  DECIMAL(16,10),
+                                   wheel_slip_fl DECIMAL(16,10),
+                                   wheel_slip_fr DECIMAL(16,10),
+                                   local_velocity_x DECIMAL(16,10),
+                                   local_velocity_y DECIMAL(16,10),
+                                   local_velocity_z DECIMAL(16,10),
+                                   angular_velocity_x DECIMAL(16,10),
+                                   angular_velocity_y DECIMAL(16,10),
+                                   angular_velocity_z DECIMAL(16,10),
+                                   angular_acceleration_x DECIMAL(16,10),
+                                   angular_acceleration_y DECIMAL(16,10),
+                                   angular_acceleration_z DECIMAL(16,10),
+                                   front_wheels_angle DECIMAL(16,10),
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
@@ -101,24 +101,24 @@ var createTables = []string{
                                    id INT NOT NULL AUTO_INCREMENT,
                                    motion_packet_id INT NOT NULL,
 																	 car_index				INT NOT NULL,
-                                   m_worldPositionX DECIMAL(15,10),
-                                   m_worldPositionY DECIMAL(15,10),
-                                   m_worldPositionZ DECIMAL(15,10),
-                                   m_worldVelocityX DECIMAL(15,10),
-                                   m_worldVelocityY DECIMAL(15,10),
-                                   m_worldVelocityZ DECIMAL(15,10),
+                                   m_worldPositionX DECIMAL(16,10),
+                                   m_worldPositionY DECIMAL(16,10),
+                                   m_worldPositionZ DECIMAL(16,10),
+                                   m_worldVelocityX DECIMAL(16,10),
+                                   m_worldVelocityY DECIMAL(16,10),
+                                   m_worldVelocityZ DECIMAL(16,10),
                                    m_worldForwardDirX SMALLINT,
                                    m_worldForwardDirY SMALLINT,
                                    m_worldForwardDirZ SMALLINT,
                                    m_worldRightDirX SMALLINT,
                                    m_worldRightDirY SMALLINT,
                                    m_worldRightDirZ SMALLINT,
-                                   m_gForceLateral DECIMAL(15,10),
-                                   m_gForceLongitudinal DECIMAL(15,10),
-                                   m_gForceVertical DECIMAL(15,10),
-                                   m_yaw DECIMAL(15,10),
-                                   m_pitch DECIMAL(15,10),
-                                   m_roll DECIMAL(15,10),
+                                   m_gForceLateral DECIMAL(16,10),
+                                   m_gForceLongitudinal DECIMAL(16,10),
+                                   m_gForceVertical DECIMAL(16,10),
+                                   m_yaw DECIMAL(16,10),
+                                   m_pitch DECIMAL(16,10),
+                                   m_roll DECIMAL(16,10),
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (motion_packet_id) REFERENCES motion_data(id)
                                  );
@@ -127,9 +127,9 @@ var createTables = []string{
                                  `,
 	`                               CREATE TABLE IF NOT EXISTS session_data (
                                    id INT NOT NULL AUTO_INCREMENT,
-                                   session_uid BIGINT NOT NULL,
+                                   session_uid BIGINT UNSIGNED NOT NULL,
                                    frame_identifier int NOT NULL,
-																	 session_time DECIMAL(15,10),
+																	 session_time DECIMAL(16,10),
                                    m_weather TINYINT,
                                    m_trackTemperature TINYINT,
                                    m_airTemperature TINYINT,
@@ -164,9 +164,9 @@ var createTables = []string{
                                  `,
 	`                               CREATE TABLE IF NOT EXISTS lap_data (
                                    id INT NOT NULL AUTO_INCREMENT,
-                                   session_uid BIGINT NOT NULL,
+                                   session_uid BIGINT UNSIGNED NOT NULL,
                                    frame_identifier int NOT NULL,
-																	 session_time DECIMAL(15,10),
+																	 session_time DECIMAL(16,10),
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
@@ -174,14 +174,14 @@ var createTables = []string{
                                    id INT NOT NULL AUTO_INCREMENT,
                                    lap_data_id INT NOT NULL,
 																	 car_index INT NOT NULL,
-                                   m_lastLapTime DECIMAL(15,10),
-                                   m_currentLapTime DECIMAL(15,10),
-                                   m_bestLapTime DECIMAL(15,10),
-                                   m_sector1Time DECIMAL(15,10),
-                                   m_sector2Time DECIMAL(15,10),
-                                   m_lapDistance DECIMAL(15,10),
+                                   m_lastLapTime DECIMAL(16,10),
+                                   m_currentLapTime DECIMAL(16,10),
+                                   m_bestLapTime DECIMAL(16,10),
+                                   m_sector1Time DECIMAL(16,10),
+                                   m_sector2Time DECIMAL(16,10),
+                                   m_lapDistance DECIMAL(16,10),
                                    m_totalDistance DECIMAL(10,6),
-                                   m_safetyCarDelta DECIMAL(15,10),
+                                   m_safetyCarDelta DECIMAL(16,10),
                                    m_carPosition TINYINT,
                                    m_currentLapNum TINYINT,
                                    m_pitStatus TINYINT,
@@ -199,9 +199,9 @@ var createTables = []string{
                                  `,
 	`                               CREATE TABLE IF NOT EXISTS event_data (
                                    id INT NOT NULL AUTO_INCREMENT,
-                                   session_uid BIGINT NOT NULL,
+                                   session_uid BIGINT UNSIGNED NOT NULL,
                                    frame_identifier int NOT NULL,
-																	 session_time DECIMAL(15,10),
+																	 session_time DECIMAL(16,10),
                                    m_eventStringCode CHAR(4),
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
@@ -211,9 +211,9 @@ var createTables = []string{
                                  `,
 	`                               CREATE TABLE IF NOT EXISTS participant_data (
                                    id INT NOT NULL AUTO_INCREMENT,
-                                   session_uid BIGINT NOT NULL,
+                                   session_uid BIGINT UNSIGNED NOT NULL,
                                    frame_identifier int NOT NULL,
-																	 session_time DECIMAL(15,10),
+																	 session_time DECIMAL(16,10),
                                    m_numCars TINYINT,
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
@@ -236,9 +236,9 @@ var createTables = []string{
                                  `,
 	`                               CREATE TABLE IF NOT EXISTS setup_data (
                                    id INT NOT NULL AUTO_INCREMENT,
-                                   session_uid BIGINT NOT NULL,
+                                   session_uid BIGINT UNSIGNED NOT NULL,
                                    frame_identifier int NOT NULL,
-																	 session_time DECIMAL(15,10),
+																	 session_time DECIMAL(16,10),
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
@@ -274,9 +274,9 @@ var createTables = []string{
                                  `,
 	`                               CREATE TABLE IF NOT EXISTS telemetry_data (
                                    id INT NOT NULL AUTO_INCREMENT,
-                                   session_uid BIGINT NOT NULL,
+                                   session_uid BIGINT UNSIGNED NOT NULL,
                                    frame_identifier int NOT NULL,
-																	 session_time DECIMAL(15,10),
+																	 session_time DECIMAL(16,10),
                                    m_buttonStatus BIT(4),
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
@@ -319,9 +319,9 @@ var createTables = []string{
                                  `,
 	`                               CREATE TABLE IF NOT EXISTS status_data (
                                    id INT NOT NULL AUTO_INCREMENT,
-                                   session_uid BIGINT NOT NULL,
+                                   session_uid BIGINT UNSIGNED NOT NULL,
                                    frame_identifier int NOT NULL,
-																	 session_time DECIMAL(15,10),
+																	 session_time DECIMAL(16,10),
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
@@ -943,106 +943,106 @@ func add_to_longterm_storage() {
 	} else {
 
 		// Prepare statement for inserting data
-		stmtIns_race_event_directory, err := db.Prepare("INSERT INTO race_event_directory VALUES (?, ?, ?, ?, ?, ?)") // ? = placeholder
+		stmtIns_race_event_directory, err := db.Prepare("INSERT INTO race_event_directory (session_uid, M_packetFormat, packet_version, player_car_index, session_start, session_end) VALUES (?, ?, ?, ?, ?, ?)") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_race_event_directory")
 		}
 
 		// Prepare statement for inserting motion_data data
-		stmtIns_motion_data, err := db.Prepare("INSERT INTO motion_data VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)") // ? = placeholder
+		stmtIns_motion_data, err := db.Prepare("INSERT INTO motion_data (session_uid, frame_identifier, session_time, suspension_position_rl, suspension_position_rr, suspension_position_fl, suspension_position_fr, M_suspensionVelocity_rl, M_suspensionVelocity_rr, M_suspensionVelocity_fl, M_suspensionVelocity_fr, suspension_acceleration_rl, suspension_acceleration_rr, suspension_acceleration_fl, suspension_acceleration_fr, wheel_speed_rl, wheel_speed_rr, wheel_speed_fl, wheel_speed_fr, wheel_slip_rl, wheel_slip_rr, wheel_slip_fl, wheel_slip_fr, local_velocity_x, local_velocity_y, local_velocity_z, angular_velocity_x, angular_velocity_y, angular_velocity_z, angular_acceleration_x, angular_acceleration_y, angular_acceleration_z, front_wheels_angle) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_motion_data")
 		}
 		// Prepare statement for inserting car_motion_data data
-		stmtIns_car_motion_data, err := db.Prepare("INSERT INTO car_motion_data VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)") // ? = placeholder
+		stmtIns_car_motion_data, err := db.Prepare("INSERT INTO car_motion_data (motion_packet_id, car_index, m_worldPositionX, m_worldPositionY, m_worldPositionZ, m_worldVelocityX, m_worldVelocityY, m_worldVelocityZ, m_worldForwardDirX, m_worldForwardDirY, m_worldForwardDirZ, m_worldRightDirX, m_worldRightDirY, m_worldRightDirZ, m_gForceLateral, m_gForceLongitudinal, m_gForceVertical, m_yaw, m_pitch, m_roll) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_car_motion_data")
 		}
 
 		// Prepare statement for inserting session_data data
-		stmtIns_session_data, err := db.Prepare("INSERT INTO session_data VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
+		stmtIns_session_data, err := db.Prepare("INSERT INTO session_data (session_uid, frame_identifier, session_time, m_weather, m_trackTemperature, m_airTemperature, m_totalLaps, m_trackLength, m_sessionType, m_trackId, m_era, m_sessionTimeLeft, m_sessionDuration, m_pitSpeedLimit, m_gamePaused, m_isSpectating, m_spectatorCarIndex, m_sliProNativeSupport, m_numMarshalZones, m_safetyCarStatus, m_networkGame) VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_session_data")
 		}
 		// Prepare statement for inserting marshal_zone data
-		stmtIns_marshal_zone, err := db.Prepare("INSERT INTO marshal_zone VALUES( ?, ?, ? )") // ? = placeholder
+		stmtIns_marshal_zone, err := db.Prepare("INSERT INTO marshal_zone (session_data_id, m_zoneStart, m_zoneFlag) VALUES( ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_marshal_zone")
 		}
 
 		// Prepare statement for inserting lap_data data
-		stmtIns_lap_data, err := db.Prepare("INSERT INTO lap_data VALUES( ?, ?, ? )") // ? = placeholder
+		stmtIns_lap_data, err := db.Prepare("INSERT INTO lap_data (session_uid, frame_identifier, session_time) VALUES( ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_lap_data")
 		}
 		// Prepare statement for inserting car_lap_data data
-		stmtIns_car_lap_data, err := db.Prepare("INSERT INTO car_lap_data VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
+		stmtIns_car_lap_data, err := db.Prepare("INSERT INTO car_lap_data (lap_data_id, car_index, m_lastLapTime, m_currentLapTime, m_bestLapTime, m_sector1Time, m_sector2Time, m_lapDistance, m_totalDistance, m_safetyCarDelta, m_carPosition, m_currentLapNum, m_pitStatus, m_sector, m_currentLapInvalid, m_penalties, m_gridPosition, m_driverStatus, m_resultStatus) VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_car_lap_data")
 		}
 
 		// Prepare statement for inserting event_data data
-		stmtIns_event_data, err := db.Prepare("INSERT INTO event_data VALUES( ?, ?, ?, ? )") // ? = placeholder
+		stmtIns_event_data, err := db.Prepare("INSERT INTO event_data (session_uid, frame_identifier, session_time, m_eventStringCode) VALUES( ?, ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_event_data")
 		}
 
 		// Prepare statement for inserting participant_data data
-		stmtIns_participant_data, err := db.Prepare("INSERT INTO participant_data VALUES( ?, ?, ?, ? )") // ? = placeholder
+		stmtIns_participant_data, err := db.Prepare("INSERT INTO participant_data (session_uid, frame_identifier, session_time, m_numCars) VALUES( ?, ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_participant_data")
 		}
 		// Prepare statement for inserting car_participant_data data
-		stmtIns_car_participant_data, err := db.Prepare("INSERT INTO car_participant_data VALUES( ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
+		stmtIns_car_participant_data, err := db.Prepare("INSERT INTO car_participant_data (participant_data_id, car_index, m_aiControlled, m_driverId, m_teamId, m_raceNumber, m_nationality, m_name) VALUES( ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_car_participant_data")
 		}
 
 		// Prepare statement for inserting setup_data data
-		stmtIns_setup_data, err := db.Prepare("INSERT INTO setup_data VALUES( ?, ?, ? )") // ? = placeholder
+		stmtIns_setup_data, err := db.Prepare("INSERT INTO setup_data (session_uid, frame_identifier, session_time) VALUES( ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_setup_data")
 		}
 		// Prepare statement for inserting car_setup_data data
-		stmtIns_car_setup_data, err := db.Prepare("INSERT INTO car_setup_data VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
+		stmtIns_car_setup_data, err := db.Prepare("INSERT INTO car_setup_data (setup_data_id, car_index, m_frontWing, m_rearWing, m_onThrottle, m_offThrottle, m_frontCamber, m_rearCamber, m_frontToe, m_rearToe, m_frontSuspension, m_rearSuspension, m_frontAntiRollBar, m_rearAntiRollBar, m_frontSuspensionHeight, m_rearSuspensionHeight, m_brakePressure, m_brakeBias, m_frontTyrePressure, m_rearTyrePressure, m_ballast, m_fuelLoad) VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_car_setup_data")
 		}
 
 		// Prepare statement for inserting telemetry data
-		stmtIns_telemetry_data, err := db.Prepare("INSERT INTO telemetry_data VALUES( ?, ?, ?, ? )") // ? = placeholder
+		stmtIns_telemetry_data, err := db.Prepare("INSERT INTO telemetry_data (session_uid, frame_identifier, session_time, m_buttonStatus) VALUES( ?, ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_telemetry_data")
 		}
 		// Prepare statement for inserting car_setup_data data
-		stmtIns_car_telemetry_data, err := db.Prepare("INSERT INTO car_telemetry_data VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
+		stmtIns_car_telemetry_data, err := db.Prepare("INSERT INTO car_telemetry_data (telemetry_data_id, car_index, m_speed, m_throttle, m_steer, m_brake, m_clutch, m_gear, m_engineRPM, m_drs, m_revLightsPercent, m_brakesTemperature_rl, m_brakesTemperature_rr, m_brakesTemperature_fl, m_brakesTemperature_fr, m_tyresSurfaceTemperature_rl, m_tyresSurfaceTemperature_rr, m_tyresSurfaceTemperature_fl, m_tyresSurfaceTemperature_fr, m_tyresInnerTemperature_rl, m_tyresInnerTemperature_rr, m_tyresInnerTemperature_fl, m_tyresInnerTemperature_fr, m_engineTemperature, m_tyresPressure_rl, m_tyresPressure_rr, m_tyresPressure_fl, m_tyresPressure_fr) VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_car_telemetry_data")
 		}
 
 		// Prepare statement for inserting status_data data
-		stmtIns_status_data, err := db.Prepare("INSERT INTO status_data VALUES( ?, ?, ? )") // ? = placeholder
+		stmtIns_status_data, err := db.Prepare("INSERT INTO status_data (session_uid, frame_identifier, session_time) VALUES( ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_status_data")
 		}
 
 		// Prepare statement for inserting car_status_data data
-		stmtIns_car_status_data, err := db.Prepare("INSERT INTO car_status_data VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?, ?, ?, ? )") // ? = placeholder
+		stmtIns_car_status_data, err := db.Prepare("INSERT INTO car_status_data (status_data_id, car_index, m_tractionControl, m_antiLockBrakes, m_fuelMix, m_frontBrakeBias, m_pitLimiterStatus, m_fuelInTank, m_fuelCapacity, m_maxRPM, m_idleRPM, m_maxGears, m_drsAllowed, m_tyresWear_rl, m_tyresWear_rr, m_tyresWear_fl, m_tyresWear_fr, m_tyreCompound, m_tyresDamage_rl, m_tyresDamage_rr, m_tyresDamage_fl, m_tyresDamage_fr, m_frontLeftWingDamage, m_frontRightWingDamage, m_rearWingDamage, m_engineDamage, m_gearBoxDamage, m_exhaustDamage, m_vehicleFiaFlags, m_ersStoreEnergy, m_ersDeployMode, m_ersHarvestedThisLapMGUK, m_ersHarvestedThisLapMGUH, m_ersDeployedThisLap) VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?, ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_car_status_data")
@@ -1079,54 +1079,63 @@ func add_to_longterm_storage() {
 				// fmt.Println(motion_packet, "atm_motion_packet")
 				if err := add_motion_packet_to_mysql(db, stmtIns_motion_data, stmtIns_car_motion_data, motion_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding motion_packet to mysql: %v", err)
+					log.Println("motion_packet.M_header.M_sessionUID:", motion_packet.M_header.M_sessionUID)
 				}
 
 			case session_packet := <-atm_session_packet:
 				// fmt.Println(session_packet, "atm_session_packet")
 				if err := add_session_packet_to_mysql(db, stmtIns_session_data, stmtIns_marshal_zone, session_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding session_packet to mysql: %v", err)
+					log.Println("session_packet.M_header.M_sessionUID:", session_packet.M_header.M_sessionUID)
 				}
 
 			case lap_packet := <-atm_lap_packet:
 				// fmt.Println(motion_packet, "atm_lap_packet")
 				if err := add_lap_packet_to_mysql(db, stmtIns_lap_data, stmtIns_car_lap_data, lap_packet); err != nil {
-					log.Println("add_to_longterm_storage: error adding motion_packet to mysql: %v", err)
+					log.Println("add_to_longterm_storage: error adding lap_packet to mysql: %v", err)
+					log.Println("lap_packet.M_header.M_sessionUID:", lap_packet.M_header.M_sessionUID)
 				}
 
 			case event_packet := <-atm_event_packet:
 				// fmt.Println(event_packet, "atm_event_packet")
 				if err := add_event_packet_to_mysql(db, stmtIns_event_data, event_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding event_packet to mysql: %v", err)
+					log.Println("event_packet.M_header.M_sessionUID:", event_packet.M_header.M_sessionUID)
 				}
 
 			case participant_packet := <-atm_participant_packet:
 				// fmt.Println(participant_packet, "atm_participant_packet")
 				if err := add_participant_packet_to_mysql(db, stmtIns_participant_data, stmtIns_car_participant_data, participant_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding participant_packet to mysql: %v", err)
+					log.Println("participant_packet.M_header.M_sessionUID:", participant_packet.M_header.M_sessionUID)
 				}
 
 			case car_setup_packet := <-atm_car_setup_packet:
 				// fmt.Println(car_setup_packet, "atm_car_setup_packet")
-				if err := add_car_setup_packet_to_mysql(db, stmtIns_car_setup_data, stmtIns_car_setup_data, car_setup_packet); err != nil {
+				if err := add_car_setup_packet_to_mysql(db, stmtIns_setup_data, stmtIns_car_setup_data, car_setup_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding car_setup_packet to mysql: %v", err)
+					log.Println("car_setup_packet.M_header.M_sessionUID:", car_setup_packet.M_header.M_sessionUID)
 				}
 
 			case telemetry_packet := <-atm_telemetry_packet:
 				// fmt.Println(telemetry_packet, "atm_telemetry_packet")
 				if err := add_telemetry_packet_to_mysql(db, stmtIns_telemetry_data, stmtIns_car_telemetry_data, telemetry_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding telemetry_packet to mysql: %v", err)
+					log.Println("telemetry_packet.M_header.M_sessionUID:", telemetry_packet.M_header.M_sessionUID)
 				}
 
 			case car_status_packet := <-atm_car_status_packet:
 				// fmt.Println(car_status_packet, "atm_car_status_packet")
-				if err := add_car_status_packet_to_mysql(db, stmtIns_car_status_data, stmtIns_car_status_data, car_status_packet); err != nil {
+				if err := add_car_status_packet_to_mysql(db, stmtIns_status_data, stmtIns_car_status_data, car_status_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding car_status_packet to mysql: %v", err)
+					log.Println("car_status_packet.M_header.M_sessionUID:", car_status_packet.M_header.M_sessionUID)
 				}
 
 			case race_event_directory_data := <-atm_race_event_directory:
 				// fmt.Println(car_status_packet, "atm_car_status_packet")
 				if err := add_race_event_directory_to_mysql(db, stmtIns_race_event_directory, race_event_directory_data); err != nil {
 					log.Println("add_to_longterm_storage: error adding race_event_directory_data to mysql: %v", err)
+					log.Println("race_event_directory_data.M_header.M_sessionUID:", race_event_directory_data.M_header.M_sessionUID)
 				}
 
 			case _ = <-redis_done:
