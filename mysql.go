@@ -62,7 +62,7 @@ var createTables = []string{
 	`                               CREATE TABLE IF NOT EXISTS motion_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT UNSIGNED NOT NULL,
-                                   frame_identifier int NOT NULL,
+                                   frame_identifier INT NOT NULL,
 																	 session_time DECIMAL(16,10),
                                    suspension_position_rl DECIMAL(16,10),
                                    suspension_position_rr DECIMAL(16,10),
@@ -180,7 +180,7 @@ var createTables = []string{
                                    m_sector1Time DECIMAL(16,10),
                                    m_sector2Time DECIMAL(16,10),
                                    m_lapDistance DECIMAL(16,10),
-                                   m_totalDistance DECIMAL(10,6),
+                                   m_totalDistance DECIMAL(11,6),
                                    m_safetyCarDelta DECIMAL(16,10),
                                    m_carPosition TINYINT,
                                    m_currentLapNum TINYINT,
@@ -554,14 +554,17 @@ func add_session_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_p
 
 		// Loop through all the cars and add them to the MYSQL database
 		for car_index, car := range packet.M_marshalZones {
-			_, err = car_prepared_statement.Exec(
-				id,
-				car_index,
-				car.M_zoneStart,
-				car.M_zoneFlag)
-			if err != nil {
-				fmt.Println("error adding car_session_packet to mysql, error:", err)
-				return err
+			if uint8(car_index) < uint8(packet.M_numMarshalZones) {
+				fmt.Println("uint8(car_index) < uint8(packet.M_numMarshalZones):", uint8(car_index), int8(packet.M_numMarshalZones))
+				_, err = car_prepared_statement.Exec(
+					id,
+					car_index,
+					car.M_zoneStart,
+					car.M_zoneFlag)
+				if err != nil {
+					fmt.Println("error adding car_session_packet to mysql, error:", err)
+					return err
+				}
 			}
 		}
 	}
@@ -969,7 +972,7 @@ func add_to_longterm_storage() {
 			log.Println("mysql: error with prepare statement stmtIns_session_data")
 		}
 		// Prepare statement for inserting marshal_zone data
-		stmtIns_marshal_zone, err := db.Prepare("INSERT INTO marshal_zone (session_data_id, m_zoneStart, m_zoneFlag) VALUES( ?, ?, ? )") // ? = placeholder
+		stmtIns_marshal_zone, err := db.Prepare("INSERT INTO marshal_zone (session_data_id, car_index, m_zoneStart, m_zoneFlag) VALUES( ?, ?, ?, ? )") // ? = placeholder
 		if err != nil {
 			// panic(err.Error()) // proper error handling instead of panic in your app
 			log.Println("mysql: error with prepare statement stmtIns_marshal_zone")
