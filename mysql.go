@@ -9,8 +9,15 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/crocotelementry/F1_GO/structs"
 	"github.com/fatih/color"
 	"github.com/go-sql-driver/mysql"
+)
+
+var (
+	saved_mysql_password     = ""
+	mysql_login_string_front = "root:"
+	mysql_login_string_back  = "@tcp(127.0.0.1:3306)/"
 )
 
 var createDB = []string{
@@ -43,7 +50,8 @@ var createTables = []string{
                                    M_packetFormat YEAR(4),
                                    packet_version FLOAT(10,6),
                                    player_car_index TINYINT,
-                                   date DATETIME,
+																	 session_start DATETIME,
+																	 session_end DATETIME,
                                    notes VARCHAR(255),
                                    PRIMARY KEY (session_uid)
                                  );
@@ -55,6 +63,7 @@ var createTables = []string{
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
+																	 session_time DECIMAL(15,10),
                                    suspension_position_rl DECIMAL(15,10),
                                    suspension_position_rr DECIMAL(15,10),
                                    suspension_position_fl DECIMAL(15,10),
@@ -91,6 +100,7 @@ var createTables = []string{
 	`                               CREATE TABLE IF NOT EXISTS car_motion_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    motion_packet_id INT NOT NULL,
+																	 car_index				INT NOT NULL,
                                    m_worldPositionX DECIMAL(15,10),
                                    m_worldPositionY DECIMAL(15,10),
                                    m_worldPositionZ DECIMAL(15,10),
@@ -119,6 +129,7 @@ var createTables = []string{
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
+																	 session_time DECIMAL(15,10),
                                    m_weather TINYINT,
                                    m_trackTemperature TINYINT,
                                    m_airTemperature TINYINT,
@@ -155,12 +166,14 @@ var createTables = []string{
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
+																	 session_time DECIMAL(15,10),
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
 	`                               CREATE TABLE IF NOT EXISTS car_lap_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    lap_data_id INT NOT NULL,
+																	 car_index INT NOT NULL,
                                    m_lastLapTime DECIMAL(15,10),
                                    m_currentLapTime DECIMAL(15,10),
                                    m_bestLapTime DECIMAL(15,10),
@@ -188,6 +201,7 @@ var createTables = []string{
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
+																	 session_time DECIMAL(15,10),
                                    m_eventStringCode CHAR(4),
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
@@ -199,6 +213,7 @@ var createTables = []string{
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
+																	 session_time DECIMAL(15,10),
                                    m_numCars TINYINT,
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
@@ -206,6 +221,7 @@ var createTables = []string{
 	`                               CREATE TABLE IF NOT EXISTS car_participant_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    participant_data_id  INT NOT NULL,
+																	 car_index INT NOT NULL,
                                    m_aiControlled TINYINT,
                                    m_driverId TINYINT,
                                    m_teamId TINYINT,
@@ -222,12 +238,14 @@ var createTables = []string{
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
+																	 session_time DECIMAL(15,10),
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
 	`                               CREATE TABLE IF NOT EXISTS car_setup_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    setup_data_id INT NOT NULL,
+																	 car_index INT NOT NULL,
                                    m_frontWing DECIMAL(3,1),
                                    m_rearWing DECIMAL(3,1),
                                    m_onThrottle TINYINT,
@@ -258,6 +276,7 @@ var createTables = []string{
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
+																	 session_time DECIMAL(15,10),
                                    m_buttonStatus BIT(4),
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
@@ -265,6 +284,7 @@ var createTables = []string{
 	`                               CREATE TABLE IF NOT EXISTS car_telemetry_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    telemetry_data_id INT NOT NULL,
+																	 car_index INT NOT NULL,
                                    m_speed SMALLINT,
                                    m_throttle TINYINT,
                                    m_steer TINYINT,
@@ -301,12 +321,14 @@ var createTables = []string{
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_uid BIGINT NOT NULL,
                                    frame_identifier int NOT NULL,
+																	 session_time DECIMAL(15,10),
                                    PRIMARY KEY (id),
                                    FOREIGN KEY (session_uid) REFERENCES race_event_directory(session_uid)
                                  );`,
 	`                               CREATE TABLE IF NOT EXISTS car_status_data (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    status_data_id INT NOT NULL,
+																	 car_index INT NOT NULL,
                                    m_tractionControl TINYINT,
                                    m_antiLockBrakes TINYINT,
                                    m_fuelMix TINYINT,
@@ -397,10 +419,443 @@ func createDatabaseTables(db *sql.DB) error {
 	return nil
 }
 
-func start_mysql() {
-	mysql_login_string_front := "root:"
-	mysql_login_string_back := "@tcp(127.0.0.1:3306)/"
+func add_race_event_directory_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, packet structs.RaceEventDirectory) error {
+	_, err = prepared_statement.Exec(
+		packet.M_header.M_sessionUID,
+		packet.M_header.M_packetFormat,
+		packet.M_header.M_packetVersion,
+		packet.M_header.M_playerCarIndex,
+		packet.Session_start_time,
+		packet.Session_end_time)
+	if err != nil {
+		fmt.Println("error adding race_event_directory to mysql, error:", err)
+		return err
+	}
 
+	fmt.Println("add_race_event_directory_to_mysql completed")
+	return nil
+}
+
+func add_motion_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketMotionData) error {
+	// First add motion_packet and get its id back
+	res, err := prepared_statement.Exec(
+		packet.M_header.M_sessionUID,
+		packet.M_header.M_frameIdentifier,
+		packet.M_header.M_sessionTime,
+		packet.M_suspensionPosition[0],
+		packet.M_suspensionPosition[1],
+		packet.M_suspensionPosition[2],
+		packet.M_suspensionPosition[3],
+		packet.M_suspensionVelocity[0],
+		packet.M_suspensionVelocity[1],
+		packet.M_suspensionVelocity[2],
+		packet.M_suspensionVelocity[3],
+		packet.M_suspensionAcceleration[0],
+		packet.M_suspensionAcceleration[1],
+		packet.M_suspensionAcceleration[2],
+		packet.M_suspensionAcceleration[3],
+		packet.M_wheelSpeed[0],
+		packet.M_wheelSpeed[1],
+		packet.M_wheelSpeed[2],
+		packet.M_wheelSpeed[3],
+		packet.M_wheelSlip[0],
+		packet.M_wheelSlip[1],
+		packet.M_wheelSlip[2],
+		packet.M_wheelSlip[3],
+		packet.M_localVelocityX,
+		packet.M_localVelocityY,
+		packet.M_localVelocityZ,
+		packet.M_angularVelocityX,
+		packet.M_angularVelocityY,
+		packet.M_angularVelocityZ,
+		packet.M_angularAccelerationX,
+		packet.M_angularAccelerationY,
+		packet.M_angularAccelerationZ,
+		packet.M_frontWheelsAngle)
+	if err != nil {
+		fmt.Println("error adding motion_packet to mysql, error:", err)
+		return err
+	} else {
+		// If successfull, Get the id of the motion_packet
+		id, err := res.LastInsertId()
+		if err != nil {
+			fmt.Println("error getting LastInsertId for motion_packet, error:", err)
+			return err
+		}
+
+		// Loop through all the cars and add them to the MYSQL database
+		for car_index, car := range packet.M_carMotionData {
+			_, err = car_prepared_statement.Exec(
+				id,
+				car_index,
+				car.M_worldPositionX,
+				car.M_worldPositionY,
+				car.M_worldPositionZ,
+				car.M_worldVelocityX,
+				car.M_worldVelocityY,
+				car.M_worldVelocityZ,
+				car.M_worldForwardDirX,
+				car.M_worldForwardDirY,
+				car.M_worldForwardDirZ,
+				car.M_worldRightDirX,
+				car.M_worldRightDirY,
+				car.M_worldRightDirZ,
+				car.M_gForceLateral,
+				car.M_gForceLongitudinal,
+				car.M_gForceVertical,
+				car.M_yaw,
+				car.M_pitch,
+				car.M_roll)
+			if err != nil {
+				fmt.Println("error adding car_motion_packet to mysql, error:", err)
+				return err
+			}
+		}
+	}
+
+	log.Println("add_motion_packet_to_mysql completed")
+	return nil
+}
+
+func add_session_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketSessionData) error {
+	// First add session_packet and get its id back
+	res, err := prepared_statement.Exec(
+		packet.M_header.M_sessionUID,
+		packet.M_header.M_frameIdentifier,
+		packet.M_header.M_sessionTime,
+		packet.M_weather,
+		packet.M_trackTemperature,
+		packet.M_airTemperature,
+		packet.M_totalLaps,
+		packet.M_trackLength,
+		packet.M_sessionType,
+		packet.M_trackId,
+		packet.M_era,
+		packet.M_sessionTimeLeft,
+		packet.M_sessionDuration,
+		packet.M_pitSpeedLimit,
+		packet.M_gamePaused,
+		packet.M_isSpectating,
+		packet.M_spectatorCarIndex,
+		packet.M_sliProNativeSupport,
+		packet.M_numMarshalZones,
+		packet.M_safetyCarStatus,
+		packet.M_networkGame)
+	if err != nil {
+		fmt.Println("error adding session_packet to mysql, error:", err)
+		return err
+	} else {
+		// If successfull, Get the id of the session_packet
+		id, err := res.LastInsertId()
+		if err != nil {
+			fmt.Println("error getting LastInsertId for session_packet, error:", err)
+			return err
+		}
+
+		// Loop through all the cars and add them to the MYSQL database
+		for car_index, car := range packet.M_marshalZones {
+			_, err = car_prepared_statement.Exec(
+				id,
+				car_index,
+				car.M_zoneStart,
+				car.M_zoneFlag)
+			if err != nil {
+				fmt.Println("error adding car_session_packet to mysql, error:", err)
+				return err
+			}
+		}
+	}
+
+	log.Println("add_session_packet_to_mysql completed")
+	return nil
+}
+
+func add_lap_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketLapData) error {
+	// First add lap_packet and get its id back
+	res, err := prepared_statement.Exec(
+		packet.M_header.M_sessionUID,
+		packet.M_header.M_frameIdentifier,
+		packet.M_header.M_sessionTime)
+	if err != nil {
+		fmt.Println("error adding lap_packet to mysql, error:", err)
+		return err
+	} else {
+		// If successfull, Get the id of the lap_packet
+		id, err := res.LastInsertId()
+		if err != nil {
+			fmt.Println("error getting LastInsertId for lap_packet, error:", err)
+			return err
+		}
+
+		// Loop through all the cars and add them to the MYSQL database
+		for car_index, car := range packet.M_lapData {
+			_, err = car_prepared_statement.Exec(
+				id,
+				car_index,
+				car.M_lastLapTime,
+				car.M_currentLapTime,
+				car.M_bestLapTime,
+				car.M_sector1Time,
+				car.M_sector2Time,
+				car.M_lapDistance,
+				car.M_totalDistance,
+				car.M_safetyCarDelta,
+				car.M_carPosition,
+				car.M_currentLapNum,
+				car.M_pitStatus,
+				car.M_sector,
+				car.M_currentLapInvalid,
+				car.M_penalties,
+				car.M_gridPosition,
+				car.M_driverStatus,
+				car.M_resultStatus)
+			if err != nil {
+				fmt.Println("error adding car_lap_packet to mysql, error:", err)
+				return err
+			}
+		}
+	}
+
+	log.Println("add_lap_packet_to_mysql completed")
+	return nil
+}
+
+func add_event_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, packet structs.PacketEventData) error {
+	// First add lap_packet and get its id back
+	_, err := prepared_statement.Exec(
+		packet.M_header.M_sessionUID,
+		packet.M_header.M_frameIdentifier,
+		packet.M_header.M_sessionTime,
+		packet.M_eventStringCode)
+	if err != nil {
+		fmt.Println("error adding event_packet to mysql, error:", err)
+		return err
+	}
+
+	log.Println("add_event_packet_to_mysql completed")
+	return nil
+}
+
+func add_participant_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketParticipantsData) error {
+	// First add lap_packet and get its id back
+	res, err := prepared_statement.Exec(
+		packet.M_header.M_sessionUID,
+		packet.M_header.M_frameIdentifier,
+		packet.M_header.M_sessionTime,
+		packet.M_numCars)
+	if err != nil {
+		fmt.Println("error adding participant_packet to mysql, error:", err)
+		return err
+	} else {
+		// If successfull, Get the id of the lap_packet
+		id, err := res.LastInsertId()
+		if err != nil {
+			fmt.Println("error getting LastInsertId for participant_packet, error:", err)
+			return err
+		}
+
+		// Loop through all the cars and add them to the MYSQL database
+		for car_index, car := range packet.M_participants {
+			_, err = car_prepared_statement.Exec(
+				id,
+				car_index,
+				car.M_aiControlled,
+				car.M_driverId,
+				car.M_teamId,
+				car.M_raceNumber,
+				car.M_nationality,
+				car.M_name)
+			if err != nil {
+				fmt.Println("error adding car_participant_packet to mysql, error:", err)
+				return err
+			}
+		}
+
+	}
+
+	log.Println("add_participant_packet_to_mysql completed")
+	return nil
+}
+
+func add_car_setup_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketCarSetupData) error {
+	// First add lap_packet and get its id back
+	res, err := prepared_statement.Exec(
+		packet.M_header.M_sessionUID,
+		packet.M_header.M_frameIdentifier,
+		packet.M_header.M_sessionTime)
+	if err != nil {
+		fmt.Println("error adding setup_packet to mysql, error:", err)
+		return err
+	} else {
+		// If successfull, Get the id of the lap_packet
+		id, err := res.LastInsertId()
+		if err != nil {
+			fmt.Println("error getting LastInsertId for setup_packet, error:", err)
+			return err
+		}
+
+		// Loop through all the cars and add them to the MYSQL database
+		for car_index, car := range packet.M_carSetups {
+			_, err = car_prepared_statement.Exec(
+				id,
+				car_index,
+				car.M_frontWing,
+				car.M_rearWing,
+				car.M_onThrottle,
+				car.M_offThrottle,
+				car.M_frontCamber,
+				car.M_rearCamber,
+				car.M_frontToe,
+				car.M_rearToe,
+				car.M_frontSuspension,
+				car.M_rearSuspension,
+				car.M_frontAntiRollBar,
+				car.M_rearAntiRollBar,
+				car.M_frontSuspensionHeight,
+				car.M_rearSuspensionHeight,
+				car.M_brakePressure,
+				car.M_brakeBias,
+				car.M_frontTyrePressure,
+				car.M_rearTyrePressure,
+				car.M_ballast,
+				car.M_fuelLoad)
+			if err != nil {
+				fmt.Println("error adding car_setup_packet to mysql, error:", err)
+				return err
+			}
+		}
+	}
+
+	log.Println("add_car_setup_packet_to_mysql completed")
+	return nil
+}
+
+func add_telemetry_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketCarTelemetryData) error {
+	// First add lap_packet and get its id back
+	res, err := prepared_statement.Exec(
+		packet.M_header.M_sessionUID,
+		packet.M_header.M_frameIdentifier,
+		packet.M_header.M_sessionTime,
+		packet.M_buttonStatus)
+	if err != nil {
+		fmt.Println("error adding telemetry_packet to mysql, error:", err)
+		return err
+	} else {
+		// If successfull, Get the id of the lap_packet
+		id, err := res.LastInsertId()
+		if err != nil {
+			fmt.Println("error getting LastInsertId for telemetry_packet, error:", err)
+			return err
+		}
+
+		// Loop through all the cars and add them to the MYSQL database
+		for car_index, car := range packet.M_carTelemetryData {
+			_, err = car_prepared_statement.Exec(
+				id,
+				car_index,
+				car.M_speed,
+				car.M_throttle,
+				car.M_steer,
+				car.M_brake,
+				car.M_clutch,
+				car.M_gear,
+				car.M_engineRPM,
+				car.M_drs,
+				car.M_revLightsPercent,
+				car.M_brakesTemperature[0],
+				car.M_brakesTemperature[1],
+				car.M_brakesTemperature[2],
+				car.M_brakesTemperature[3],
+				car.M_tyresSurfaceTemperature[0],
+				car.M_tyresSurfaceTemperature[1],
+				car.M_tyresSurfaceTemperature[2],
+				car.M_tyresSurfaceTemperature[3],
+				car.M_tyresInnerTemperature[0],
+				car.M_tyresInnerTemperature[1],
+				car.M_tyresInnerTemperature[2],
+				car.M_tyresInnerTemperature[3],
+				car.M_engineTemperature,
+				car.M_tyresPressure[0],
+				car.M_tyresPressure[1],
+				car.M_tyresPressure[2],
+				car.M_tyresPressure[3])
+			if err != nil {
+				fmt.Println("error car_telemetry_packet to mysql, error:", err)
+				return err
+			}
+		}
+	}
+
+	log.Println("add_telemetry_packet_to_mysql completed")
+	return nil
+}
+
+func add_car_status_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketCarStatusData) error {
+	// First add lap_packet and get its id back
+	res, err := prepared_statement.Exec(
+		packet.M_header.M_sessionUID,
+		packet.M_header.M_frameIdentifier,
+		packet.M_header.M_sessionTime)
+	if err != nil {
+		fmt.Println("error adding status_packet to mysql, error:", err)
+		return err
+	} else {
+		// If successfull, Get the id of the lap_packet
+		id, err := res.LastInsertId()
+		if err != nil {
+			fmt.Println("error getting LastInsertId for status_packet, error:", err)
+			return err
+		}
+
+		// Loop through all the cars and add them to the MYSQL database
+		for car_index, car := range packet.M_carStatusData {
+			_, err = car_prepared_statement.Exec(
+				id,
+				car_index,
+				car.M_tractionControl,
+				car.M_antiLockBrakes,
+				car.M_fuelMix,
+				car.M_frontBrakeBias,
+				car.M_pitLimiterStatus,
+				car.M_fuelInTank,
+				car.M_fuelCapacity,
+				car.M_maxRPM,
+				car.M_idleRPM,
+				car.M_maxGears,
+				car.M_drsAllowed,
+				car.M_tyresWear[0],
+				car.M_tyresWear[1],
+				car.M_tyresWear[2],
+				car.M_tyresWear[3],
+				car.M_tyreCompound,
+				car.M_tyresDamage[0],
+				car.M_tyresDamage[1],
+				car.M_tyresDamage[2],
+				car.M_tyresDamage[3],
+				car.M_frontLeftWingDamage,
+				car.M_frontRightWingDamage,
+				car.M_rearWingDamage,
+				car.M_engineDamage,
+				car.M_gearBoxDamage,
+				car.M_exhaustDamage,
+				car.M_vehicleFiaFlags,
+				car.M_ersStoreEnergy,
+				car.M_ersDeployMode,
+				car.M_ersHarvestedThisLapMGUK,
+				car.M_ersHarvestedThisLapMGUH,
+				car.M_ersDeployedThisLap)
+			if err != nil {
+				fmt.Println("error car_status_packet to mysql, error:", err)
+				return err
+			}
+		}
+	}
+
+	log.Println("add_car_status_packet_to_mysql completed")
+	return nil
+}
+
+func start_mysql() {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("Please enter your MYSQL password to connect to your MYSQL server:  ")
 	fmt.Println("      user:      root")
@@ -420,6 +875,8 @@ func start_mysql() {
 		fmt.Println("Exiting...")
 		os.Exit(1)
 	} else {
+
+		saved_mysql_password = mysql_login_string_front + mysql_password + mysql_login_string_back
 
 		fmt.Print("Create F1_GO database  ")
 		if _, err := db.Exec("USE F1_GO_MYSQL"); err != nil {
@@ -456,4 +913,230 @@ func start_mysql() {
 		fmt.Print("F1_GO MYSQL database   ")
 		color.Green("Done")
 	}
+
+	// Close the database connection
+	db.Close()
+}
+
+func add_to_longterm_storage() {
+	packets_to_add := true
+
+	log.Println("mysql_login_string_front+saved_mysql_password+mysql_login_string_back:", saved_mysql_password)
+
+	db, err := sql.Open("mysql", saved_mysql_password)
+	if err != nil {
+		log.Println("mysql: could not get a connection: %v", err)
+	}
+
+	if _, err := db.Exec("USE F1_GO_MYSQL"); err != nil {
+		log.Println("mysql: error with statement 'USE F1_GO_MYSQL'", err)
+	}
+
+	// Defer the closing of the mysql database connection until we are finished with add_to_longterm_storage and return
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		db.Close()
+		log.Println("mysql: could not establish a good connection: %v", err)
+		fmt.Println("Exiting...")
+		os.Exit(1)
+	} else {
+
+		// Prepare statement for inserting data
+		stmtIns_race_event_directory, err := db.Prepare("INSERT INTO race_event_directory VALUES (?, ?, ?, ?, ?, ?)") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_race_event_directory")
+		}
+
+		// Prepare statement for inserting motion_data data
+		stmtIns_motion_data, err := db.Prepare("INSERT INTO motion_data VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_motion_data")
+		}
+		// Prepare statement for inserting car_motion_data data
+		stmtIns_car_motion_data, err := db.Prepare("INSERT INTO car_motion_data VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_car_motion_data")
+		}
+
+		// Prepare statement for inserting session_data data
+		stmtIns_session_data, err := db.Prepare("INSERT INTO session_data VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_session_data")
+		}
+		// Prepare statement for inserting marshal_zone data
+		stmtIns_marshal_zone, err := db.Prepare("INSERT INTO marshal_zone VALUES( ?, ?, ? )") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_marshal_zone")
+		}
+
+		// Prepare statement for inserting lap_data data
+		stmtIns_lap_data, err := db.Prepare("INSERT INTO lap_data VALUES( ?, ?, ? )") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_lap_data")
+		}
+		// Prepare statement for inserting car_lap_data data
+		stmtIns_car_lap_data, err := db.Prepare("INSERT INTO car_lap_data VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_car_lap_data")
+		}
+
+		// Prepare statement for inserting event_data data
+		stmtIns_event_data, err := db.Prepare("INSERT INTO event_data VALUES( ?, ?, ?, ? )") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_event_data")
+		}
+
+		// Prepare statement for inserting participant_data data
+		stmtIns_participant_data, err := db.Prepare("INSERT INTO participant_data VALUES( ?, ?, ?, ? )") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_participant_data")
+		}
+		// Prepare statement for inserting car_participant_data data
+		stmtIns_car_participant_data, err := db.Prepare("INSERT INTO car_participant_data VALUES( ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_car_participant_data")
+		}
+
+		// Prepare statement for inserting setup_data data
+		stmtIns_setup_data, err := db.Prepare("INSERT INTO setup_data VALUES( ?, ?, ? )") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_setup_data")
+		}
+		// Prepare statement for inserting car_setup_data data
+		stmtIns_car_setup_data, err := db.Prepare("INSERT INTO car_setup_data VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_car_setup_data")
+		}
+
+		// Prepare statement for inserting telemetry data
+		stmtIns_telemetry_data, err := db.Prepare("INSERT INTO telemetry_data VALUES( ?, ?, ?, ? )") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_telemetry_data")
+		}
+		// Prepare statement for inserting car_setup_data data
+		stmtIns_car_telemetry_data, err := db.Prepare("INSERT INTO car_telemetry_data VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_car_telemetry_data")
+		}
+
+		// Prepare statement for inserting status_data data
+		stmtIns_status_data, err := db.Prepare("INSERT INTO status_data VALUES( ?, ?, ? )") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_status_data")
+		}
+
+		// Prepare statement for inserting car_status_data data
+		stmtIns_car_status_data, err := db.Prepare("INSERT INTO car_status_data VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?, ?, ?, ? )") // ? = placeholder
+		if err != nil {
+			// panic(err.Error()) // proper error handling instead of panic in your app
+			log.Println("mysql: error with prepare statement stmtIns_car_status_data")
+		}
+
+		defer stmtIns_race_event_directory.Close() // Close the statement when we leave main() / the program terminates
+
+		defer stmtIns_motion_data.Close()     // Close the statement when we leave main() / the program terminates
+		defer stmtIns_car_motion_data.Close() // Close the statement when we leave main() / the program terminates
+
+		defer stmtIns_session_data.Close() // Close the statement when we leave main() / the program terminates
+		defer stmtIns_marshal_zone.Close() // Close the statement when we leave main() / the program terminates
+
+		defer stmtIns_lap_data.Close()     // Close the statement when we leave main() / the program terminates
+		defer stmtIns_car_lap_data.Close() // Close the statement when we leave main() / the program terminates
+
+		defer stmtIns_event_data.Close() // Close the statement when we leave main() / the program terminates
+
+		defer stmtIns_participant_data.Close()     // Close the statement when we leave main() / the program terminates
+		defer stmtIns_car_participant_data.Close() // Close the statement when we leave main() / the program terminates
+
+		defer stmtIns_setup_data.Close()     // Close the statement when we leave main() / the program terminates
+		defer stmtIns_car_setup_data.Close() // Close the statement when we leave main() / the program terminates
+
+		defer stmtIns_telemetry_data.Close()     // Close the statement when we leave main() / the program terminates
+		defer stmtIns_car_telemetry_data.Close() // Close the statement when we leave main() / the program terminates
+
+		defer stmtIns_status_data.Close()     // Close the statement when we leave main() / the program terminates
+		defer stmtIns_car_status_data.Close() // Close the statement when we leave main() / the program terminates
+
+		for packets_to_add {
+			select {
+			case motion_packet := <-atm_motion_packet:
+				// fmt.Println(motion_packet, "atm_motion_packet")
+				if err := add_motion_packet_to_mysql(db, stmtIns_motion_data, stmtIns_car_motion_data, motion_packet); err != nil {
+					log.Println("add_to_longterm_storage: error adding motion_packet to mysql: %v", err)
+				}
+
+			case session_packet := <-atm_session_packet:
+				// fmt.Println(session_packet, "atm_session_packet")
+				if err := add_session_packet_to_mysql(db, stmtIns_session_data, stmtIns_marshal_zone, session_packet); err != nil {
+					log.Println("add_to_longterm_storage: error adding session_packet to mysql: %v", err)
+				}
+
+			case lap_packet := <-atm_lap_packet:
+				// fmt.Println(motion_packet, "atm_lap_packet")
+				if err := add_lap_packet_to_mysql(db, stmtIns_lap_data, stmtIns_car_lap_data, lap_packet); err != nil {
+					log.Println("add_to_longterm_storage: error adding motion_packet to mysql: %v", err)
+				}
+
+			case event_packet := <-atm_event_packet:
+				// fmt.Println(event_packet, "atm_event_packet")
+				if err := add_event_packet_to_mysql(db, stmtIns_event_data, event_packet); err != nil {
+					log.Println("add_to_longterm_storage: error adding event_packet to mysql: %v", err)
+				}
+
+			case participant_packet := <-atm_participant_packet:
+				// fmt.Println(participant_packet, "atm_participant_packet")
+				if err := add_participant_packet_to_mysql(db, stmtIns_participant_data, stmtIns_car_participant_data, participant_packet); err != nil {
+					log.Println("add_to_longterm_storage: error adding participant_packet to mysql: %v", err)
+				}
+
+			case car_setup_packet := <-atm_car_setup_packet:
+				// fmt.Println(car_setup_packet, "atm_car_setup_packet")
+				if err := add_car_setup_packet_to_mysql(db, stmtIns_car_setup_data, stmtIns_car_setup_data, car_setup_packet); err != nil {
+					log.Println("add_to_longterm_storage: error adding car_setup_packet to mysql: %v", err)
+				}
+
+			case telemetry_packet := <-atm_telemetry_packet:
+				// fmt.Println(telemetry_packet, "atm_telemetry_packet")
+				if err := add_telemetry_packet_to_mysql(db, stmtIns_telemetry_data, stmtIns_car_telemetry_data, telemetry_packet); err != nil {
+					log.Println("add_to_longterm_storage: error adding telemetry_packet to mysql: %v", err)
+				}
+
+			case car_status_packet := <-atm_car_status_packet:
+				// fmt.Println(car_status_packet, "atm_car_status_packet")
+				if err := add_car_status_packet_to_mysql(db, stmtIns_car_status_data, stmtIns_car_status_data, car_status_packet); err != nil {
+					log.Println("add_to_longterm_storage: error adding car_status_packet to mysql: %v", err)
+				}
+
+			case race_event_directory_data := <-atm_race_event_directory:
+				// fmt.Println(car_status_packet, "atm_car_status_packet")
+				if err := add_race_event_directory_to_mysql(db, stmtIns_race_event_directory, race_event_directory_data); err != nil {
+					log.Println("add_to_longterm_storage: error adding race_event_directory_data to mysql: %v", err)
+				}
+
+			case _ = <-redis_done:
+				fmt.Println("Redis finished sending data to MYSQL")
+				packets_to_add = false
+
+			}
+		}
+	}
+
+	return
+
 }
