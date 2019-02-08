@@ -136,12 +136,12 @@ type PacketEventData struct {
 // Frequency: Every 5 seconds
 // Size: 1082 bytes
 type ParticipantData struct {
-	M_aiControlled uint8      // Whether the vehicle is AI (1) or Human (0) controlled
-	M_driverId     uint8      // Driver id - see appendix
-	M_teamId       uint8      // Team id - see appendix
-	M_raceNumber   uint8      // Race number of the car
-	M_nationality  uint8      // Nationality of the driver
-	M_name         [48]string // Name of participant in UTF-8 format – null terminated, Will be truncated with … (U+2026) if too long
+	M_aiControlled uint8    // Whether the vehicle is AI (1) or Human (0) controlled
+	M_driverId     uint8    // Driver id - see appendix
+	M_teamId       uint8    // Team id - see appendix
+	M_raceNumber   uint8    // Race number of the car
+	M_nationality  uint8    // Nationality of the driver
+	M_name         [48]byte // Name of participant in UTF-8 format – null terminated, Will be truncated with … (U+2026) if too long
 }
 type PacketParticipantsData struct {
 	M_header PacketHeader // Header
@@ -227,7 +227,7 @@ type CarStatusData struct {
 	M_maxRPM                  uint16   // Cars max RPM, point of rev limiter
 	M_idleRPM                 uint16   // Cars idle RPM
 	M_maxGears                uint8    // Maximum number of gears
-	M_drsAlloweds             uint8    // 0 = not allowed, 1 = allowed, -1 = unknown
+	M_drsAllowed              uint8    // 0 = not allowed, 1 = allowed, -1 = unknown
 	M_tyresWear               [4]uint8 // Tyre wear percentage
 	M_tyreCompound            uint8    // Modern - 0 = hyper soft, 1 = ultra soft, 2 = super soft, 3 = soft, 4 = medium, 5 = hard, 6 = super hard, 7 = inter, 8 = wet, Classic - 0-6 = dry, 7-8 = wet
 	M_tyresDamage             [4]uint8 // Tyre damage (percentage)
