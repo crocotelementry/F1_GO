@@ -154,6 +154,7 @@ var createTables = []string{
 	`                               CREATE TABLE IF NOT EXISTS marshal_zone (
                                    id INT NOT NULL AUTO_INCREMENT,
                                    session_data_id INT NOT NULL,
+																	 car_index INT NOT NULL,
                                    m_zoneStart DECIMAL(10,10),
                                    m_zoneFlag TINYINT,
                                    PRIMARY KEY (id),
@@ -180,7 +181,7 @@ var createTables = []string{
                                    m_sector1Time DECIMAL(16,10),
                                    m_sector2Time DECIMAL(16,10),
                                    m_lapDistance DECIMAL(16,10),
-                                   m_totalDistance DECIMAL(11,6),
+                                   m_totalDistance DECIMAL(16,10),
                                    m_safetyCarDelta DECIMAL(16,10),
                                    m_carPosition TINYINT,
                                    m_currentLapNum TINYINT,
@@ -431,8 +432,6 @@ func add_race_event_directory_to_mysql(db *sql.DB, prepared_statement *sql.Stmt,
 		fmt.Println("error adding race_event_directory to mysql, error:", err)
 		return err
 	}
-
-	fmt.Println("add_race_event_directory_to_mysql completed")
 	return nil
 }
 
@@ -512,8 +511,6 @@ func add_motion_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_pr
 			}
 		}
 	}
-
-	log.Println("add_motion_packet_to_mysql completed")
 	return nil
 }
 
@@ -553,23 +550,14 @@ func add_session_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_p
 		}
 
 		// Loop through all the cars and add them to the MYSQL database
-		for car_index, car := range packet.M_marshalZones {
-			if uint8(car_index) < uint8(packet.M_numMarshalZones) {
-				fmt.Println("uint8(car_index) < uint8(packet.M_numMarshalZones):", uint8(car_index), int8(packet.M_numMarshalZones))
-				_, err = car_prepared_statement.Exec(
-					id,
-					car_index,
-					car.M_zoneStart,
-					car.M_zoneFlag)
-				if err != nil {
-					fmt.Println("error adding car_session_packet to mysql, error:", err)
-					return err
-				}
+		for car_index := 0; car_index < int(packet.M_numMarshalZones); car_index++ {
+			_, err = car_prepared_statement.Exec(id, car_index, packet.M_marshalZones[car_index].M_zoneStart, packet.M_marshalZones[car_index].M_zoneFlag)
+			if err != nil {
+				fmt.Println("error adding car_session_packet to mysql, error:", err)
+				return err
 			}
 		}
 	}
-
-	log.Println("add_session_packet_to_mysql completed")
 	return nil
 }
 
@@ -592,6 +580,7 @@ func add_lap_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepa
 
 		// Loop through all the cars and add them to the MYSQL database
 		for car_index, car := range packet.M_lapData {
+			// fmt.Println(car.M_totalDistance)
 			_, err = car_prepared_statement.Exec(
 				id,
 				car_index,
@@ -618,8 +607,6 @@ func add_lap_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepa
 			}
 		}
 	}
-
-	log.Println("add_lap_packet_to_mysql completed")
 	return nil
 }
 
@@ -634,8 +621,6 @@ func add_event_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, packet 
 		fmt.Println("error adding event_packet to mysql, error:", err)
 		return err
 	}
-
-	log.Println("add_event_packet_to_mysql completed")
 	return nil
 }
 
@@ -667,7 +652,7 @@ func add_participant_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, c
 				car.M_teamId,
 				car.M_raceNumber,
 				car.M_nationality,
-				car.M_name)
+				string(car.M_name[:]))
 			if err != nil {
 				fmt.Println("error adding car_participant_packet to mysql, error:", err)
 				return err
@@ -675,8 +660,6 @@ func add_participant_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, c
 		}
 
 	}
-
-	log.Println("add_participant_packet_to_mysql completed")
 	return nil
 }
 
@@ -728,8 +711,6 @@ func add_car_setup_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car
 			}
 		}
 	}
-
-	log.Println("add_car_setup_packet_to_mysql completed")
 	return nil
 }
 
@@ -788,8 +769,6 @@ func add_telemetry_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car
 			}
 		}
 	}
-
-	log.Println("add_telemetry_packet_to_mysql completed")
 	return nil
 }
 
@@ -854,7 +833,6 @@ func add_car_status_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, ca
 		}
 	}
 
-	log.Println("add_car_status_packet_to_mysql completed")
 	return nil
 }
 
