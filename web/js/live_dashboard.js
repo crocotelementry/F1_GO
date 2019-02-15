@@ -15,6 +15,16 @@ var drs_status_element = document.getElementById('drs_status');
 var current_gear_element = document.getElementById('current_gear');
 // fia flags shit
 var current_fia_flags_element = document.getElementById('current_fia_flags');
+// save_session_alert shit
+var save_session_alert = document.getElementById('save_session_alert');
+// save_session_alert_number shit
+var save_session_alert_number = document.getElementById('save_session_alert_number');
+// Get the save_to_database popup
+var popup = document.getElementById('save_to_database_popup');
+// Get the button that opens the modal
+var popup_save_open = document.getElementById("save_session_nav_button");
+// Get the <span> element that closes the popup
+var popup_close = document.getElementsByClassName("close")[0];
 
 
 // create an array with the pit data strings
@@ -136,6 +146,23 @@ var throttle_brake_multiplier = throttle_brake_canvas_height / 100;
 
 // Create a variable to controll our interval. If all new data is processed then dont run the charts
 var not_read_position_adder = 0;
+
+// Things that have to do witht the save to database popup
+// When the user clicks on the button, open the modal
+popup_save_open.onclick = function() {
+  popup.style.display = "block";
+}
+// When the user clicks on <span> (x), close the modal
+popup_close.onclick = function() {
+  popup.style.display = "none";
+}
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+  if (event.target == popup) {
+    popup.style.display = "none";
+  }
+}
+
 
 // connect to websocket
 var ws = new WebSocket('ws://localhost:8080/ws');
@@ -259,9 +286,10 @@ function intTime_to_timeTime(time_str) {
 // Function is called when go_websocket_server recieves a packet and sends it via the websocket
 ws.onmessage = function(event) {
   var data = JSON.parse(event.data);
+  // console.log(data)
+  var switch_number = data.M_header.M_packetId;
 
-
-  switch (data.M_header.M_packetId) {
+  switch (switch_number) {
     // If the data inbound is the session data packet, grab the amount of total laps
     case 1:
       if (amount_of_laps == 0) {
@@ -284,6 +312,7 @@ ws.onmessage = function(event) {
 
       // If the data inbound is the car telemetry packet
     case 6:
+      // console.log(typeof (data.M_carTelemetryData))
       // Set the data for the telemetry packet information
       drs_status_element.innerHTML = drs_info[data.M_carTelemetryData[data.M_header.M_playerCarIndex].M_drs]; // 0 = off, 1 = on
       current_gear_element.innerHTML = gear_info[data.M_carTelemetryData[data.M_header.M_playerCarIndex].M_gear];
@@ -296,13 +325,28 @@ ws.onmessage = function(event) {
       throttle_brake_chart_brake_data.push([throttle_brake_canvas_width + not_read_position_adder, data.M_carTelemetryData[data.M_header.M_playerCarIndex].M_brake * throttle_brake_multiplier]);
       //
       not_read_position_adder += 1;
-
       break;
+
 
       // If the data inbound is the car status packet
     case 7:
       // Set the data for the status packet information
-      current_fia_flags_element.innerHTML = fia_info[data.M_carStatusData[data.M_header.M_playerCarIndex].M_vehicleFiaFlags]; // -1 = invalid/unknown, 0 = none, 1 = green, 2 = blue, 3 = yellow, 4 = red
+      // console.log(switch_number, data)
+      // console.log(typeof (data.M_carStatusData));
+      current_fia_flags_element.innerHTML = fia_info[data.M_carStatusData[data.M_header.M_playerCarIndex].M_vehicleFiaFlags];
+      break; // -1 = invalid/unknown, 0 = none, 1 = green, 2 = blue, 3 = yellow, 4 = red
+
+    case 30:
+      //
+      console.log("Session just finished, sending redis captured info");
+      console.log("Num of session", data.Num_of_sessions);
+      console.log("Session 1 data:", data.Sessions[0].Session_UID, data.Sessions[0].Session_start_time, data.Sessions[0].Session_end_time);
+      save_session_alert_number.innerHTML = data.Num_of_sessions;
+      save_session_alert.classList.toggle('show');
+      save_session_alert.classList.toggle('hide');
+      break;
+    default:
+      console.log(switch_number, "Invalid packeted id sent over websocket!\n", data);
       break;
   }
 }
