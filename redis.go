@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
@@ -32,6 +31,8 @@ var (
 	race_event_directory_struct            structs.RaceEventDirectory
 	Session_start                          structs.Session_start
 	Session_end                            structs.Session_end
+	Save_to_database_alerts                structs.Save_to_database_alerts
+	Session                                structs.Session
 	session_start_code                     = [4]uint8{83, 69, 78, 68}
 	session_end_code                       = [4]uint8{83, 83, 84, 65}
 	redis_ping_done                        = make(chan bool)
@@ -68,7 +69,7 @@ type Udp_data struct {
 	Car_setup_packet       structs.PacketCarSetupData
 	Telemetry_packet       structs.PacketCarTelemetryData
 	Car_status_packet      structs.PacketCarStatusData
-	Save_to_database_alert Save_to_database_alerts
+	Save_to_database_alert structs.Save_to_database_alerts
 }
 
 // To establish connectivity in redigo, you need to create a redis.Pool object which is a pool of connections to Redis.
@@ -117,56 +118,46 @@ func ping(c redis.Conn) error {
 
 // Function that grabs a specific Session_uid worth of data from the redis database and
 // sends it over to mysql to be put into long term mysql
-func getRedisData() {
+func getRedisDataForMysql(chosen_session_uid uint64) {
 	// get a connection from the pool (redis.Conn)
 	redis_conn := redis_pool.Get()
 
 	// Defer the closing of the redis connection until we return at the end of getRedisData
 	defer redis_conn.Close()
 
-	session_UIDs, err := redis_conn.Do("SMEMBERS", "session_UIDs")
-	if err != nil {
-		log.Println("107 Getting session_UIDs from redis database failed:", err)
-	}
-
-	// Print out the session_uids
-	fmt.Print("session_UIDs:")
-	session_uids := reflect.ValueOf(session_UIDs)
-	for i := 0; i < session_uids.Len(); i += 1 {
-		fmt.Println(redis.Uint64(session_uids.Index(i).Interface(), nil))
-	}
-
-	// ask user to choose which session_uid
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print("Choose which session_UID you want to save to long term storage: ")
-	scanner.Scan()
-	chosen_session_uid := scanner.Text()
-
-	fmt.Println("chosen_session_uid:", chosen_session_uid)
-
+	// Start up add_to_longterm_storage in another goroutine
 	go add_to_longterm_storage()
 
+	log.Println("1")
+
+	session_uid := strconv.FormatUint(chosen_session_uid, 10)
+
+	log.Println("2")
+
 	// Send over the initial data for race_event_directory
-	race_event_directory_data, err := (redis_conn.Do("GET", chosen_session_uid+":0:Incrementing_packet_number"))
+	race_event_directory_data, err := (redis_conn.Do("GET", session_uid+":0:0"))
 	if err != nil {
 		log.Println("Getting initial data for race_event_directory from redis database failed:", err)
 	}
 
+	log.Println("race_event_directory_data", race_event_directory_data)
+
 	err = json.Unmarshal(race_event_directory_data.([]byte), &Motion_packet)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
+	log.Println("4")
 	// atm_race_event_directory <- Header
 
 	// Send over our session_start_time and session_end_time
 	// Send over the initial data for race_event_directory
-	session_start_time, err := (redis_conn.Do("GET", chosen_session_uid+":session_start_time"))
+	session_start_time, err := (redis_conn.Do("GET", session_uid+":session_start_time"))
 	if err != nil {
 		log.Println("Getting session_start_time from redis database failed:", err)
 	}
 
-	session_end_time, err := (redis_conn.Do("GET", chosen_session_uid+":session_end_time"))
+	session_end_time, err := (redis_conn.Do("GET", session_uid+":session_end_time"))
 	if err != nil {
 		log.Println("Getting session_end_time from redis database failed:", err)
 	}
@@ -184,13 +175,13 @@ func getRedisData() {
 	atm_race_event_directory <- structs.RaceEventDirectory{Motion_packet.M_header, Session_start.Session_start_time, Session_end.Session_end_time}
 
 	for packet_type := 0; packet_type < 8; packet_type += 1 {
-		max_packet_number, err := redis.Int(redis_conn.Do("GET", chosen_session_uid+":"+strconv.Itoa(packet_type)+":Incrementing_packet_number"))
+		max_packet_number, err := redis.Int(redis_conn.Do("GET", session_uid+":"+strconv.Itoa(packet_type)+":Incrementing_packet_number"))
 		if err != nil {
 			log.Println("Getting max_packet_number for packet id number", packet_type, "from redis database failed:", err)
 		}
 
 		for packet_number := 0; packet_number < max_packet_number; packet_number += 1 {
-			packet_data, err := redis_conn.Do("GET", chosen_session_uid+":"+strconv.Itoa(packet_type)+":"+strconv.Itoa(packet_number))
+			packet_data, err := redis_conn.Do("GET", session_uid+":"+strconv.Itoa(packet_type)+":"+strconv.Itoa(packet_number))
 			if err != nil {
 				log.Println("Getting packet_data for packet id number", packet_type, "with packet_number", packet_number, "from redis database failed:", err)
 			}
@@ -466,6 +457,8 @@ func getGameData(hub *Hub) {
 						fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
 					}
 
+					fmt.Println("sadd session uid:", session_UIDs_SADD_integer_reply)
+
 					if session_UIDs_SADD_integer_reply == int64(0) {
 						fmt.Println("\nSession with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", Event_packet.M_header.M_sessionUID, "\n")
 					}
@@ -510,16 +503,6 @@ func getGameData(hub *Hub) {
 				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":session_end_time"), &structs.Session_end{time.Now()}); err != nil {
 					fmt.Println("Setting session_end_time to failed:", err)
 				}
-
-				// fmt.Println("incrementing_packet_number", incrementing_packet_number)
-				// fmt.Println((strconv.FormatUint(header.M_sessionUID, 10) + ":0:Incrementing_packet_number"), "0:Incrementing_packet_number", incrementing_motion_packet_number)
-				// fmt.Println("1:Incrementing_packet_number", incrementing_session_packet_number)
-				// fmt.Println("2:Incrementing_packet_number", incrementing_lap_packet_number)
-				// fmt.Println("3:Incrementing_packet_number", incrementing_event_packet_number)
-				// fmt.Println("4:Incrementing_packet_number", incrementing_participant_packet_number)
-				// fmt.Println("5:Incrementing_packet_number", incrementing_car_setup_packet_number)
-				// fmt.Println("6:Incrementing_packet_number", incrementing_telemetry_packet_number)
-				// fmt.Println("7:Incrementing_packet_number", incrementing_car_status_packet_number)
 
 				// Session_uid:Incrementing_packet_number
 				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":Incrementing_packet_number"), strconv.Itoa(int(incrementing_packet_number))); err != nil {
@@ -577,15 +560,60 @@ func getGameData(hub *Hub) {
 				incrementing_car_status_packet_number = 0
 				incrementing_packet_number = 0
 
-				go getRedisData()
+				// Uncomment for easy command line testing
+				// go getRedisData()
+
+				// Get the Session_UIDs of the sessions we have stored in our redis database
+				session_UIDs, err := redis_conn.Do("SMEMBERS", "session_UIDs")
+				if err != nil {
+					log.Println("Getting session_UIDs from redis database failed:", err)
+				}
+
+				// Get the session UIDS and add them to our Save_to_database_alert struct to be sent over the websocket
+				// fmt.Print("session_UIDs:")
+				redis_sessions := []structs.Session{}
+				session_uids := reflect.ValueOf(session_UIDs)
+				for i := 0; i < session_uids.Len(); i += 1 {
+					uid, _ := redis.Uint64(session_uids.Index(i).Interface(), nil)
+
+					uid_string := strconv.FormatUint(uid, 10)
+
+					session_start_time, err := (redis_conn.Do("GET", uid_string+":session_start_time"))
+					if err != nil {
+						log.Println("Getting session_start_time from redis database failed:", err)
+					}
+
+					session_end_time, err := (redis_conn.Do("GET", uid_string+":session_end_time"))
+					if err != nil {
+						log.Println("Getting session_end_time from redis database failed:", err)
+					}
+
+					err = json.Unmarshal(session_start_time.([]byte), &Session_start)
+					if err != nil {
+						fmt.Println(err)
+					}
+
+					err = json.Unmarshal(session_end_time.([]byte), &Session_end)
+					if err != nil {
+						fmt.Println(err)
+					}
+
+					redis_sessions = append(redis_sessions, structs.Session{Session_UID: uid_string, Session_start_time: Session_start.Session_start_time, Session_end_time: Session_end.Session_end_time})
+				}
+
+				// fmt.Println("redis_sessions", redis_sessions)
 
 				// Send the Udp_data struct containing the packet_id and the packet itself over the hub.bradcast channel to
 				// be broadcasted to all connected clients
 				hub.broadcast <- &Udp_data{
 					Id: 30,
-					Save_to_database_alert: Save_to_database_alerts{
-						date:   "now, lol plz fix this later",
-						length: 69,
+
+					Save_to_database_alert: structs.Save_to_database_alerts{
+						M_header: structs.PacketHeader{
+							M_packetId: 30,
+						},
+						Num_of_sessions: session_uids.Len(),
+						Sessions:        redis_sessions,
 					},
 				}
 			}

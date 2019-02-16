@@ -283,6 +283,43 @@ function intTime_to_timeTime(time_str) {
   return time_min + ":" + time_sec + ":" + time_mil
 }
 
+function save_to_database(uid) {
+  var uid_json = '{"type":"add", "uid":' + uid + '}';
+  ws.send(uid_json);
+}
+
+function add_session_row(session_uid, session_start, session_end) {
+  var new_div = document.createElement('div');
+  new_div.className = 'popup_table_grid';
+
+  var uid = document.createElement('div');
+  uid.innerHTML = session_uid
+
+  var start = document.createElement('div');
+  start.innerHTML = session_start
+
+  var end = document.createElement('div');
+  end.innerHTML = session_end
+
+  var button_div = document.createElement('div');
+  button_div.innerHTML = '<input type="button" class="save_session_button" data-uid="' + session_uid + '" value="SAVE" onclick="save_to_database(this.dataset.uid)">';
+
+
+  new_div.appendChild(uid)
+  new_div.appendChild(start)
+  new_div.appendChild(end)
+  new_div.appendChild(button_div)
+
+  document.getElementById('popup_body').appendChild(new_div);
+}
+
+// Uncomment and alter to display when the websocket is closed from the servers end
+// conn.onclose = function (evt) {
+//     var item = document.createElement("div");
+//     item.innerHTML = "<b>Connection closed.</b>";
+//     appendLog(item);
+// };
+
 // Function is called when go_websocket_server recieves a packet and sends it via the websocket
 ws.onmessage = function(event) {
   var data = JSON.parse(event.data);
@@ -338,12 +375,17 @@ ws.onmessage = function(event) {
 
     case 30:
       //
-      console.log("Session just finished, sending redis captured info");
-      console.log("Num of session", data.Num_of_sessions);
-      console.log("Session 1 data:", data.Sessions[0].Session_UID, data.Sessions[0].Session_start_time, data.Sessions[0].Session_end_time);
+      // console.log("Session just finished, sending redis captured info");
+      // console.log("Num of session", data.Num_of_sessions);
+      // console.log("Session 1 data:", data.Sessions[0].Session_UID, data.Sessions[0].Session_start_time, data.Sessions[0].Session_end_time);
       save_session_alert_number.innerHTML = data.Num_of_sessions;
       save_session_alert.classList.toggle('show');
       save_session_alert.classList.toggle('hide');
+
+      for (z = 0; z < data.Num_of_sessions; z++) {
+        add_session_row(data.Sessions[z].Session_UID, data.Sessions[z].Session_start_time, data.Sessions[z].Session_end_time)
+      }
+
       break;
     default:
       console.log(switch_number, "Invalid packeted id sent over websocket!\n", data);

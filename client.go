@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+	// "bytes"
+	// "encoding/binary"
 
 	"github.com/crocotelementry/F1_GO/structs"
 	"github.com/gorilla/websocket"
@@ -27,8 +29,9 @@ const (
 )
 
 var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
+	newline      = []byte{'\n'}
+	space        = []byte{' '}
+	message_json structs.Save_to_database_websocket_recive
 )
 
 var upgrader = websocket.Upgrader{
@@ -37,11 +40,11 @@ var upgrader = websocket.Upgrader{
 	// WriteBufferSize: 1341,
 }
 
-// Struct that is sent over websocket to alert of new data to be saved or not saved to longterm storage
-type Save_to_database_alerts struct {
-	date   string
-	length int
-}
+// // Struct that is sent over websocket to alert of new data to be saved or not saved to longterm storage
+// type Save_to_database_alerts struct{
+// 	date string
+// 	length int
+// }
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
@@ -64,7 +67,42 @@ type Client struct {
 	Car_setup_packet_send   chan structs.PacketCarSetupData
 	Telemetry_packet_send   chan structs.PacketCarTelemetryData
 	Car_status_packet_send  chan structs.PacketCarStatusData
-	Save_to_database_alert  chan Save_to_database_alerts
+	Save_to_database_alert  chan structs.Save_to_database_alerts
+}
+
+// readFromClients reads messages from the websocket connection to the hub.
+//
+// The application runs readFromClients in a per-connection goroutine. The application
+// ensures that there is at most one reader on a connection by executing all
+// reads from this goroutine.
+func (c *Client) readFromClients() {
+	defer func() {
+		c.hub.unregister <- c
+		c.conn.Close()
+	}()
+	c.conn.SetReadLimit(maxMessageSize)
+	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	for {
+		_, message, err := c.conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("error: %v", err)
+			}
+			break
+		}
+
+		err = json.Unmarshal([]byte(message), &message_json)
+		// log.Println("Add to database message recieved message json:", message_json)
+
+		switch message_json.Type {
+		case "add":
+			log.Println("", c.conn.RemoteAddr(), " ", "Session chosen for long term storage in mysql with UID:", message_json.Uid)
+			getRedisDataForMysql(message_json.Uid)
+		default:
+			log.Println("Incorrect statement recieved from websocket client:", message_json.Type)
+		}
+	}
 }
 
 // writeDashboard pumps messages from the hub to the websocket connection.
@@ -202,7 +240,18 @@ func (c *Client) writeHistory() {
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
+	// c.conn.SetReadLimit(maxMessageSize)
+	// c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	// c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
+		// _, message, err := c.conn.ReadMessage()
+		// if err != nil {
+		// 	if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+		// 		log.Printf("error: %v", err)
+		// 	}
+		// 	break
+		// }
+		// message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 
 		// Fetch that data it wants from database and send it over the ws
 		select {
@@ -322,20 +371,21 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 			Lap_packet_send:        make(chan structs.PacketLapData),
 			Telemetry_packet_send:  make(chan structs.PacketCarTelemetryData),
 			Car_status_packet_send: make(chan structs.PacketCarStatusData),
-			Save_to_database_alert: make(chan Save_to_database_alerts),
+			Save_to_database_alert: make(chan structs.Save_to_database_alerts),
 		}
 		client.hub.register <- client
 
 		// Allow collection of memory referenced by the caller by doing all work in
 		// new goroutines.
 		go client.writeDashboard()
+		go client.readFromClients()
 
 	case "history":
 		client := &Client{
 			hub:                    hub,
 			conn_type:              conn_type,
 			conn:                   conn,
-			Save_to_database_alert: make(chan Save_to_database_alerts),
+			Save_to_database_alert: make(chan structs.Save_to_database_alerts),
 		}
 		client.hub.register <- client
 
@@ -349,7 +399,7 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 			conn_type:              conn_type,
 			conn:                   conn,
 			Lap_packet_send:        make(chan structs.PacketLapData),
-			Save_to_database_alert: make(chan Save_to_database_alerts),
+			Save_to_database_alert: make(chan structs.Save_to_database_alerts),
 		}
 		client.hub.register <- client
 

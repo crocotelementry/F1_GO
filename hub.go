@@ -1,3 +1,7 @@
+//
+// To-do:
+// 	2.10.19		Clean up repetitive code and create functions to reuse
+//
 package main
 
 import (
@@ -72,7 +76,7 @@ func (h *Hub) run() {
 			switch client.conn_type {
 			case "dashboard":
 				if _, ok := h.dashboard_clients[client]; ok {
-					log.Println("", client.conn.RemoteAddr(), " ", "dashboard client closed")
+					log.Println("", client.conn.RemoteAddr(), " ", "0dashboard client closed")
 					delete(h.dashboard_clients, client)  // Delete the client
 					delete(h.live_clients, client)       // Delete the client
 					delete(h.all_clients, client)        // Delete the client
@@ -103,27 +107,93 @@ func (h *Hub) run() {
 		// If we have a message to broadcast
 		case message := <-h.broadcast:
 			switch message.Id {
+			// case 0:
+			// 	client.Motion_packet_send <- message.Motion_packet
 			case 1:
 				for client := range h.dashboard_clients { // Loop through all our clients
-					client.Session_packet_send <- message.Session_packet
+					select {
+					case client.Session_packet_send <- message.Session_packet:
+						// default:
+						// 	log.Println("", client.conn.RemoteAddr(), " ", "1dashboard client closed")
+						// 	delete(h.dashboard_clients, client)   // Delete the client
+						// 	delete(h.live_clients, client)   // Delete the client
+						// 	delete(h.all_clients, client)   // Delete the client
+						// 	close(client.Session_packet_send)     // Close all the different packet channels!
+						// 	close(client.Lap_packet_send)         // ..
+						// 	close(client.Telemetry_packet_send)   // ..
+						// 	close(client.Car_status_packet_send)  // ..
+						// 	close(client.Save_to_database_alert)  // ..
+					}
 				}
 			case 2:
 				for client := range h.dashboard_clients { // Loop through all our dashboard clients
-					client.Lap_packet_send <- message.Lap_packet
+					select {
+					case client.Lap_packet_send <- message.Lap_packet:
+						// default:
+						// 	log.Println("2 problem")
+						// 	log.Println("", client.conn.RemoteAddr(), " ", "2dashboard client closed")
+						// 	delete(h.dashboard_clients, client)   // Delete the client
+						// 	delete(h.live_clients, client)   // Delete the client
+						// 	delete(h.all_clients, client)   // Delete the client
+						// 	close(client.Session_packet_send)     // Close all the different packet channels!
+						// 	close(client.Lap_packet_send)         // ..
+						// 	close(client.Telemetry_packet_send)   // ..
+						// 	close(client.Car_status_packet_send)  // ..
+						// 	close(client.Save_to_database_alert)  // ..
+					}
 				}
 				for client := range h.time_clients { // Loop through all our time clients
-					client.Lap_packet_send <- message.Lap_packet
+					select {
+					case client.Lap_packet_send <- message.Lap_packet:
+						// default:
+						// 	log.Println("", client.conn.RemoteAddr(), " ", "time client closed")
+						// 	delete(h.time_clients, client)    // Delete the client
+						// 	delete(h.live_clients, client)   // Delete the client
+						// 	delete(h.all_clients, client)   // Delete the client
+						// 	close(client.Lap_packet_send)         // Close all the different packet channels!
+						// 	close(client.Save_to_database_alert)  // ..
+					}
 				}
+			// case 3:
+			// 	client.Event_packet_send <- message.Event_packet
+			// case 4:
+			// 	client.Participant_packet_send <- message.Participant_packet
+			// case 5:
+			// 	client.Car_setup_packet_send <- message.Car_setup_packet
 			case 6:
 				for client := range h.dashboard_clients { // Loop through all our clients
-					client.Telemetry_packet_send <- message.Telemetry_packet
+					select {
+					case client.Telemetry_packet_send <- message.Telemetry_packet:
+						// default:
+						// 	log.Println("", client.conn.RemoteAddr(), " ", "3dashboard client closed")
+						// 	delete(h.dashboard_clients, client)   // Delete the client
+						// 	delete(h.live_clients, client)   // Delete the client
+						// 	delete(h.all_clients, client)   // Delete the client
+						// 	close(client.Session_packet_send)     // Close all the different packet channels!
+						// 	close(client.Lap_packet_send)         // ..
+						// 	close(client.Telemetry_packet_send)   // ..
+						// 	close(client.Car_status_packet_send)  // ..
+						// 	close(client.Save_to_database_alert)  // ..
+					}
 				}
 			case 7:
 				for client := range h.dashboard_clients { // Loop through all our clients
-					client.Car_status_packet_send <- message.Car_status_packet
+					select {
+					case client.Car_status_packet_send <- message.Car_status_packet:
+						// default:
+						// 	log.Println("", client.conn.RemoteAddr(), " ", "4dashboard client closed")
+						// 	delete(h.dashboard_clients, client)   // Delete the client
+						// 	delete(h.live_clients, client)   // Delete the client
+						// 	delete(h.all_clients, client)   // Delete the client
+						// 	close(client.Session_packet_send)     // Close all the different packet channels!
+						// 	close(client.Lap_packet_send)         // ..
+						// 	close(client.Telemetry_packet_send)   // ..
+						// 	close(client.Car_status_packet_send)  // ..
+						// 	close(client.Save_to_database_alert)  // ..
+					}
 				}
 			case 30:
-				log.Println(" ", "End of race code received. Sending Save_to_database_alert to clients")
+				log.Println("             ", "End of race code received. Sending Save_to_database_alert to clients")
 				for client := range h.all_clients { // Loop through all our clients
 					client.Save_to_database_alert <- message.Save_to_database_alert
 				}
