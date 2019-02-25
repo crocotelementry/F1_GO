@@ -1059,63 +1059,63 @@ func add_to_longterm_storage() {
 				if err := add_motion_packet_to_mysql(db, stmtIns_motion_data, stmtIns_car_motion_data, motion_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding motion_packet to mysql: %v", err)
 				}
-				log.Println("motion_packet added to mysql")
+				// log.Println("motion_packet added to mysql")
 
 			case session_packet := <-atm_session_packet:
 				// fmt.Println(session_packet, "atm_session_packet")
 				if err := add_session_packet_to_mysql(db, stmtIns_session_data, stmtIns_marshal_zone, session_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding session_packet to mysql: %v", err)
 				}
-				log.Println("session_packet added to mysql")
+				// log.Println("session_packet added to mysql")
 
 			case lap_packet := <-atm_lap_packet:
 				// fmt.Println(motion_packet, "atm_lap_packet")
 				if err := add_lap_packet_to_mysql(db, stmtIns_lap_data, stmtIns_car_lap_data, lap_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding lap_packet to mysql: %v", err)
 				}
-				log.Println("lap_packet added to mysql")
+				// log.Println("lap_packet added to mysql")
 
 			case event_packet := <-atm_event_packet:
 				// fmt.Println(event_packet, "atm_event_packet")
 				if err := add_event_packet_to_mysql(db, stmtIns_event_data, event_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding event_packet to mysql: %v", err)
 				}
-				log.Println("event_packet added to mysql")
+				// log.Println("event_packet added to mysql")
 
 			case participant_packet := <-atm_participant_packet:
 				// fmt.Println(participant_packet, "atm_participant_packet")
 				if err := add_participant_packet_to_mysql(db, stmtIns_participant_data, stmtIns_car_participant_data, participant_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding participant_packet to mysql: %v", err)
 				}
-				log.Println("participant_packet added to mysql")
+				// log.Println("participant_packet added to mysql")
 
 			case car_setup_packet := <-atm_car_setup_packet:
 				// fmt.Println(car_setup_packet, "atm_car_setup_packet")
 				if err := add_car_setup_packet_to_mysql(db, stmtIns_setup_data, stmtIns_car_setup_data, car_setup_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding car_setup_packet to mysql: %v", err)
 				}
-				log.Println("car_setup_packet added to mysql")
+				// log.Println("car_setup_packet added to mysql")
 
 			case telemetry_packet := <-atm_telemetry_packet:
 				// fmt.Println(telemetry_packet, "atm_telemetry_packet")
 				if err := add_telemetry_packet_to_mysql(db, stmtIns_telemetry_data, stmtIns_car_telemetry_data, telemetry_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding telemetry_packet to mysql: %v", err)
 				}
-				log.Println("telemetry_packet added to mysql")
+				// log.Println("telemetry_packet added to mysql")
 
 			case car_status_packet := <-atm_car_status_packet:
 				// fmt.Println(car_status_packet, "atm_car_status_packet")
 				if err := add_car_status_packet_to_mysql(db, stmtIns_status_data, stmtIns_car_status_data, car_status_packet); err != nil {
 					log.Println("add_to_longterm_storage: error adding car_status_packet to mysql: %v", err)
 				}
-				log.Println("car_status_packet added to mysql")
+				// log.Println("car_status_packet added to mysql")
 
 			case race_event_directory_data := <-atm_race_event_directory:
 				// fmt.Println(car_status_packet, "atm_car_status_packet")
 				if err := add_race_event_directory_to_mysql(db, stmtIns_race_event_directory, race_event_directory_data); err != nil {
 					log.Println("add_to_longterm_storage: error adding race_event_directory_data to mysql: %v", err)
 				}
-				log.Println("race_event_directory_data added to mysql")
+				// log.Println("race_event_directory_data added to mysql")
 
 			case _ = <-redis_done:
 				fmt.Println("Redis finished sending data to MYSQL")
