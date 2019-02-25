@@ -68,6 +68,7 @@ type Client struct {
 	Telemetry_packet_send   chan structs.PacketCarTelemetryData
 	Car_status_packet_send  chan structs.PacketCarStatusData
 	Save_to_database_alert  chan structs.Save_to_database_alerts
+	Save_to_database_status chan structs.Save_to_database_status
 }
 
 // readFromClients reads messages from the websocket connection to the hub.
@@ -98,7 +99,7 @@ func (c *Client) readFromClients() {
 		switch message_json.Type {
 		case "add":
 			log.Println("", c.conn.RemoteAddr(), " ", "Session chosen for long term storage in mysql with UID:", message_json.Uid)
-			getRedisDataForMysql(message_json.Uid)
+			go getRedisDataForMysql(c.hub, message_json.Uid)
 		default:
 			log.Println("Incorrect statement recieved from websocket client:", message_json.Type)
 		}
@@ -215,6 +216,25 @@ func (c *Client) writeDashboard() {
 				return
 			}
 
+		case message, ok := <-c.Save_to_database_status:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
+			if !ok {
+				// The hub closed the channel.
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				log.Println("!ok problem with Save_to_database_status")
+				return
+			}
+			// Marshal our message into json so we can send it over the websocket
+			json_message_marshaled, err := json.Marshal(message)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with writing Save_to_database_status to time websocket")
+				return
+			}
+
 		case <-ticker.C: // If our ticker has reached its time
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 
@@ -273,6 +293,25 @@ func (c *Client) writeHistory() {
 			// Write our JSON formatted F1 UDP packet struct to our websocket
 			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
 				log.Println("", c.conn.RemoteAddr(), " ", "error with writing Save_to_database_alert to notlive websocket")
+				return
+			}
+
+		case message, ok := <-c.Save_to_database_status:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
+			if !ok {
+				// The hub closed the channel.
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				log.Println("!ok problem with Save_to_database_status")
+				return
+			}
+			// Marshal our message into json so we can send it over the websocket
+			json_message_marshaled, err := json.Marshal(message)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with writing Save_to_database_status to time websocket")
 				return
 			}
 
@@ -341,6 +380,25 @@ func (c *Client) writeTime() {
 				return
 			}
 
+		case message, ok := <-c.Save_to_database_status:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
+			if !ok {
+				// The hub closed the channel.
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				log.Println("!ok problem with Save_to_database_status")
+				return
+			}
+			// Marshal our message into json so we can send it over the websocket
+			json_message_marshaled, err := json.Marshal(message)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with writing Save_to_database_status to time websocket")
+				return
+			}
+
 		case <-ticker.C: // If our ticker has reached its time
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 
@@ -364,14 +422,15 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 	switch conn_type {
 	case "dashboard":
 		client := &Client{
-			hub:                    hub,
-			conn_type:              conn_type,
-			conn:                   conn,
-			Session_packet_send:    make(chan structs.PacketSessionData),
-			Lap_packet_send:        make(chan structs.PacketLapData),
-			Telemetry_packet_send:  make(chan structs.PacketCarTelemetryData),
-			Car_status_packet_send: make(chan structs.PacketCarStatusData),
-			Save_to_database_alert: make(chan structs.Save_to_database_alerts),
+			hub:                     hub,
+			conn_type:               conn_type,
+			conn:                    conn,
+			Session_packet_send:     make(chan structs.PacketSessionData),
+			Lap_packet_send:         make(chan structs.PacketLapData),
+			Telemetry_packet_send:   make(chan structs.PacketCarTelemetryData),
+			Car_status_packet_send:  make(chan structs.PacketCarStatusData),
+			Save_to_database_alert:  make(chan structs.Save_to_database_alerts),
+			Save_to_database_status: make(chan structs.Save_to_database_status),
 		}
 		client.hub.register <- client
 
@@ -382,10 +441,11 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 
 	case "history":
 		client := &Client{
-			hub:                    hub,
-			conn_type:              conn_type,
-			conn:                   conn,
-			Save_to_database_alert: make(chan structs.Save_to_database_alerts),
+			hub:                     hub,
+			conn_type:               conn_type,
+			conn:                    conn,
+			Save_to_database_alert:  make(chan structs.Save_to_database_alerts),
+			Save_to_database_status: make(chan structs.Save_to_database_status),
 		}
 		client.hub.register <- client
 
@@ -395,11 +455,12 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 
 	case "time":
 		client := &Client{
-			hub:                    hub,
-			conn_type:              conn_type,
-			conn:                   conn,
-			Lap_packet_send:        make(chan structs.PacketLapData),
-			Save_to_database_alert: make(chan structs.Save_to_database_alerts),
+			hub:                     hub,
+			conn_type:               conn_type,
+			conn:                    conn,
+			Lap_packet_send:         make(chan structs.PacketLapData),
+			Save_to_database_alert:  make(chan structs.Save_to_database_alerts),
+			Save_to_database_status: make(chan structs.Save_to_database_status),
 		}
 		client.hub.register <- client
 
