@@ -85,6 +85,7 @@ func (h *Hub) run() {
 					close(client.Telemetry_packet_send)  // ..
 					close(client.Car_status_packet_send) // ..
 					close(client.Save_to_database_alert) // ..
+					close(client.Save_to_database_status)
 				}
 			case "time":
 				if _, ok := h.time_clients[client]; ok {
@@ -94,6 +95,7 @@ func (h *Hub) run() {
 					delete(h.all_clients, client)        // Delete the client
 					close(client.Lap_packet_send)        // Close all the different packet channels!
 					close(client.Save_to_database_alert) // ..
+					close(client.Save_to_database_status)
 				}
 			case "history":
 				if _, ok := h.history_clients[client]; ok {
@@ -101,6 +103,7 @@ func (h *Hub) run() {
 					delete(h.history_clients, client)    // Delete the client
 					delete(h.all_clients, client)        // Delete the client
 					close(client.Save_to_database_alert) // Close the packet channel!
+					close(client.Save_to_database_status)
 				}
 			}
 
@@ -195,7 +198,15 @@ func (h *Hub) run() {
 			case 30:
 				log.Println("             ", "End of race code received. Sending Save_to_database_alert to clients")
 				for client := range h.all_clients { // Loop through all our clients
-					client.Save_to_database_alert <- message.Save_to_database_alert
+					select {
+					case client.Save_to_database_alert <- message.Save_to_database_alert:
+					}
+				}
+			case 31:
+				for client := range h.all_clients { // Loop through all our clients
+					select {
+					case client.Save_to_database_status <- message.Save_to_database_status:
+					}
 				}
 			default:
 				// Packet is either not a valid packet number or it is from packets with ids of:
