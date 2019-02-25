@@ -61,15 +61,16 @@ var (
 type Udp_data struct {
 	Id int
 
-	Motion_packet          structs.PacketMotionData
-	Session_packet         structs.PacketSessionData
-	Lap_packet             structs.PacketLapData
-	Event_packet           structs.PacketEventData
-	Participant_packet     structs.PacketParticipantsData
-	Car_setup_packet       structs.PacketCarSetupData
-	Telemetry_packet       structs.PacketCarTelemetryData
-	Car_status_packet      structs.PacketCarStatusData
-	Save_to_database_alert structs.Save_to_database_alerts
+	Motion_packet           structs.PacketMotionData
+	Session_packet          structs.PacketSessionData
+	Lap_packet              structs.PacketLapData
+	Event_packet            structs.PacketEventData
+	Participant_packet      structs.PacketParticipantsData
+	Car_setup_packet        structs.PacketCarSetupData
+	Telemetry_packet        structs.PacketCarTelemetryData
+	Car_status_packet       structs.PacketCarStatusData
+	Save_to_database_alert  structs.Save_to_database_alerts
+	Save_to_database_status structs.Save_to_database_status
 }
 
 // To establish connectivity in redigo, you need to create a redis.Pool object which is a pool of connections to Redis.
@@ -118,7 +119,7 @@ func ping(c redis.Conn) error {
 
 // Function that grabs a specific Session_uid worth of data from the redis database and
 // sends it over to mysql to be put into long term mysql
-func getRedisDataForMysql(chosen_session_uid uint64) {
+func getRedisDataForMysql(hub *Hub, chosen_session_uid uint64) {
 	// get a connection from the pool (redis.Conn)
 	redis_conn := redis_pool.Get()
 
@@ -128,11 +129,11 @@ func getRedisDataForMysql(chosen_session_uid uint64) {
 	// Start up add_to_longterm_storage in another goroutine
 	go add_to_longterm_storage()
 
-	log.Println("1")
+	// log.Println("1")
 
 	session_uid := strconv.FormatUint(chosen_session_uid, 10)
 
-	log.Println("2")
+	// log.Println("2")
 
 	// Send over the initial data for race_event_directory
 	race_event_directory_data, err := (redis_conn.Do("GET", session_uid+":0:0"))
@@ -140,14 +141,14 @@ func getRedisDataForMysql(chosen_session_uid uint64) {
 		log.Println("Getting initial data for race_event_directory from redis database failed:", err)
 	}
 
-	log.Println("race_event_directory_data", race_event_directory_data)
+	// log.Println("race_event_directory_data", race_event_directory_data)
 
 	err = json.Unmarshal(race_event_directory_data.([]byte), &Motion_packet)
 	if err != nil {
 		log.Println(err)
 	}
 
-	log.Println("4")
+	// log.Println("4")
 	// atm_race_event_directory <- Header
 
 	// Send over our session_start_time and session_end_time
@@ -174,13 +175,94 @@ func getRedisDataForMysql(chosen_session_uid uint64) {
 
 	atm_race_event_directory <- structs.RaceEventDirectory{Motion_packet.M_header, Session_start.Session_start_time, Session_end.Session_end_time}
 
+	progress_status := structs.Save_to_database_status{
+		M_header: structs.PacketHeader{
+			M_packetId: 31,
+		},
+		Status:         "initial",
+		UID:            session_uid,
+		Current_packet: 0,
+		Packet_0:       0,
+		Packet_0_total: 0,
+		Packet_1:       0,
+		Packet_1_total: 0,
+		Packet_2:       0,
+		Packet_2_total: 0,
+		Packet_3:       0,
+		Packet_3_total: 0,
+		Packet_4:       0,
+		Packet_4_total: 0,
+		Packet_5:       0,
+		Packet_5_total: 0,
+		Packet_6:       0,
+		Packet_6_total: 0,
+		Packet_7:       0,
+		Packet_7_total: 0,
+		Total_current:  0,
+		Total_packets:  0,
+	}
+
+	for packet_type := 0; packet_type < 8; packet_type += 1 {
+		max_packet_number, err := redis.Int(redis_conn.Do("GET", session_uid+":"+strconv.Itoa(packet_type)+":Incrementing_packet_number"))
+		if err != nil {
+			log.Println("Getting max_packet_number for packet id number", packet_type, "from redis database failed:", err)
+		}
+		switch packet_type {
+		case 0:
+			progress_status.Packet_0_total = max_packet_number
+		case 1:
+			progress_status.Packet_1_total = max_packet_number
+		case 2:
+			progress_status.Packet_2_total = max_packet_number
+		case 3:
+			progress_status.Packet_3_total = max_packet_number
+		case 4:
+			progress_status.Packet_4_total = max_packet_number
+		case 5:
+			progress_status.Packet_5_total = max_packet_number
+		case 6:
+			progress_status.Packet_6_total = max_packet_number
+		case 7:
+			progress_status.Packet_7_total = max_packet_number
+			progress_status.Total_packets = progress_status.Packet_0_total + progress_status.Packet_1_total + progress_status.Packet_2_total + progress_status.Packet_3_total + progress_status.Packet_4_total + progress_status.Packet_5_total + progress_status.Packet_6_total + progress_status.Packet_7_total
+		}
+	}
+
+	hub.broadcast <- &Udp_data{
+		Id:                      31,
+		Save_to_database_status: progress_status,
+	}
+
+	progress_status.Status = "Saving"
+
 	for packet_type := 0; packet_type < 8; packet_type += 1 {
 		max_packet_number, err := redis.Int(redis_conn.Do("GET", session_uid+":"+strconv.Itoa(packet_type)+":Incrementing_packet_number"))
 		if err != nil {
 			log.Println("Getting max_packet_number for packet id number", packet_type, "from redis database failed:", err)
 		}
 
+		switch packet_type {
+		case 0:
+			progress_status.Current_packet = 0
+		case 1:
+			progress_status.Current_packet = 1
+		case 2:
+			progress_status.Current_packet = 2
+		case 3:
+			progress_status.Current_packet = 3
+		case 4:
+			progress_status.Current_packet = 4
+		case 5:
+			progress_status.Current_packet = 5
+		case 6:
+			progress_status.Current_packet = 6
+		case 7:
+			progress_status.Current_packet = 7
+		}
+
 		for packet_number := 0; packet_number < max_packet_number; packet_number += 1 {
+			progress_status.Total_current += 1
+
 			packet_data, err := redis_conn.Do("GET", session_uid+":"+strconv.Itoa(packet_type)+":"+strconv.Itoa(packet_number))
 			if err != nil {
 				log.Println("Getting packet_data for packet id number", packet_type, "with packet_number", packet_number, "from redis database failed:", err)
@@ -192,12 +274,22 @@ func getRedisDataForMysql(chosen_session_uid uint64) {
 				if err != nil {
 					fmt.Println(err)
 				}
+				progress_status.Packet_0 = packet_number
+				hub.broadcast <- &Udp_data{
+					Id:                      31,
+					Save_to_database_status: progress_status,
+				}
 				atm_motion_packet <- Motion_packet
 
 			case 1:
 				err := json.Unmarshal(packet_data.([]byte), &Session_packet)
 				if err != nil {
 					fmt.Println(err)
+				}
+				progress_status.Packet_1 = packet_number
+				hub.broadcast <- &Udp_data{
+					Id:                      31,
+					Save_to_database_status: progress_status,
 				}
 				atm_session_packet <- Session_packet
 
@@ -206,12 +298,22 @@ func getRedisDataForMysql(chosen_session_uid uint64) {
 				if err != nil {
 					fmt.Println(err)
 				}
+				progress_status.Packet_2 = packet_number
+				hub.broadcast <- &Udp_data{
+					Id:                      31,
+					Save_to_database_status: progress_status,
+				}
 				atm_lap_packet <- Lap_packet
 
 			case 3:
 				err := json.Unmarshal(packet_data.([]byte), &Event_packet)
 				if err != nil {
 					fmt.Println(err)
+				}
+				progress_status.Packet_3 = packet_number
+				hub.broadcast <- &Udp_data{
+					Id:                      31,
+					Save_to_database_status: progress_status,
 				}
 				atm_event_packet <- Event_packet
 
@@ -220,12 +322,22 @@ func getRedisDataForMysql(chosen_session_uid uint64) {
 				if err != nil {
 					fmt.Println(err)
 				}
+				progress_status.Packet_4 = packet_number
+				hub.broadcast <- &Udp_data{
+					Id:                      31,
+					Save_to_database_status: progress_status,
+				}
 				atm_participant_packet <- Participant_packet
 
 			case 5:
 				err := json.Unmarshal(packet_data.([]byte), &Car_setup_packet)
 				if err != nil {
 					fmt.Println(err)
+				}
+				progress_status.Packet_5 = packet_number
+				hub.broadcast <- &Udp_data{
+					Id:                      31,
+					Save_to_database_status: progress_status,
 				}
 				atm_car_setup_packet <- Car_setup_packet
 
@@ -234,6 +346,11 @@ func getRedisDataForMysql(chosen_session_uid uint64) {
 				if err != nil {
 					fmt.Println(err)
 				}
+				progress_status.Packet_6 = packet_number
+				hub.broadcast <- &Udp_data{
+					Id:                      31,
+					Save_to_database_status: progress_status,
+				}
 				atm_telemetry_packet <- Telemetry_packet
 
 			case 7:
@@ -241,13 +358,23 @@ func getRedisDataForMysql(chosen_session_uid uint64) {
 				if err != nil {
 					fmt.Println(err)
 				}
+				progress_status.Packet_7 = packet_number
+				hub.broadcast <- &Udp_data{
+					Id:                      31,
+					Save_to_database_status: progress_status,
+				}
 				atm_car_status_packet <- Car_status_packet
 
 			}
 		}
 	}
 
+	progress_status.Status = "done"
 	redis_done <- true
+	hub.broadcast <- &Udp_data{
+		Id:                      31,
+		Save_to_database_status: progress_status,
+	}
 	return
 }
 
