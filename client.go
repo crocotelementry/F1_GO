@@ -7,10 +7,12 @@ import (
 	"log"
 	"net/http"
 	"time"
+	// "strconv"
 	// "bytes"
 	// "encoding/binary"
 
 	"github.com/crocotelementry/F1_GO/structs"
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/websocket"
 )
 
@@ -29,9 +31,10 @@ const (
 )
 
 var (
-	newline      = []byte{'\n'}
-	space        = []byte{' '}
-	message_json structs.Save_to_database_websocket_recive
+	newline        = []byte{'\n'}
+	space          = []byte{' '}
+	message_json   structs.Save_to_database_websocket_recive
+	CatchUp_struct structs.CatchUp_struct
 )
 
 var upgrader = websocket.Upgrader{
@@ -69,6 +72,85 @@ type Client struct {
 	Car_status_packet_send  chan structs.PacketCarStatusData
 	Save_to_database_alert  chan structs.Save_to_database_alerts
 	Save_to_database_status chan structs.Save_to_database_status
+}
+
+// catchUp catches the client up on information that would be currently avaliable to it if
+// the user was already at the page.
+//
+// This includes:
+// 			Sessions is redis ready to be saved to long term Storage
+// 			Chart canvas data that is live
+// 			Time for current session
+//
+// catchUp works directly with the client and occures before the client is connected to readFromClients or its write.
+// Due to this, and since this data is important to only this specific client, catchUp works without the hub, sending
+// the catchUp data directly over the websocket to the client previous to any other live data!
+func (c *Client) catchUp(clientType string) {
+	redis_conn := redis_pool.Get()
+	// Defer the closing of the redis connection until we return at the end of getRedisData
+	defer redis_conn.Close()
+
+	switch clientType {
+	case "dashboard":
+		// We only want data for the graphs since the second we connect this client to the hub it will receive data for everything else
+		// and we want redis stored sessions
+		// fmt.Println("current_session_uid",current_session_uid)
+		raceSpeed, err := redis.Ints((redis_conn.Do("LRANGE", "raceSpeed", 0, -1)))
+		if err != nil {
+			log.Println("Getting raceSpeed catchUp from redis database failed:", err)
+		}
+
+		engineRevs, err := redis.Ints((redis_conn.Do("LRANGE", "engineRevs", 0, -1)))
+		if err != nil {
+			log.Println("Getting engineRevs catchUp from redis database failed:", err)
+		}
+
+		gearChanges, err := redis.Ints((redis_conn.Do("LRANGE", "gearChanges", 0, -1)))
+		if err != nil {
+			log.Println("Getting gearChanges catchUp from redis database failed:", err)
+		}
+
+		throttleApplication, err := redis.Ints((redis_conn.Do("LRANGE", "throttleApplication", 0, -1)))
+		if err != nil {
+			log.Println("Getting throttleApplication catchUp from redis database failed:", err)
+		}
+
+		brakeApplication, err := redis.Ints((redis_conn.Do("LRANGE", "brakeApplication", 0, -1)))
+		if err != nil {
+			log.Println("Getting brakeApplication catchUp from redis database failed:", err)
+		}
+
+		raceSpeed_data := structs.CatchUp_struct{M_header: structs.PacketHeader{
+			M_packetId: 32,
+		},
+			RaceSpeed_data:           raceSpeed,
+			EngineRevs_data:          engineRevs,
+			GearChanges_data:         gearChanges,
+			ThrottleApplication_data: throttleApplication,
+			BrakeApplication_data:    brakeApplication}
+
+		// Marshal our message into json so we can send it over the websockets
+		json_message_marshaled, err := json.Marshal(raceSpeed_data)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		// Write our JSON formatted F1 UDP packet struct to our websocket
+		if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+			log.Println("", c.conn.RemoteAddr(), " ", "error with writing raceSpeed_data to dashboard websocket")
+			return
+		}
+
+		// fmt.Println("raceSpeed", raceSpeed_data)
+
+	case "history":
+		// we only want redis stored sessions
+
+	case "time":
+		// We only need data for the time events that was missed by either connecting too late or by refreshing/ switching between pages
+		// and we want redis stored sessions
+
+	}
 }
 
 // readFromClients reads messages from the websocket connection to the hub.
@@ -436,6 +518,7 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 
 		// Allow collection of memory referenced by the caller by doing all work in
 		// new goroutines.
+		client.catchUp("dashboard")
 		go client.writeDashboard()
 		go client.readFromClients()
 
@@ -451,6 +534,7 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 
 		// Allow collection of memory referenced by the caller by doing all work in
 		// new goroutines.
+		client.catchUp("history")
 		go client.writeHistory()
 
 	case "time":
@@ -466,6 +550,7 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 
 		// Allow collection of memory referenced by the caller by doing all work in
 		// new goroutines.
+		client.catchUp("time")
 		go client.writeTime()
 
 	default:

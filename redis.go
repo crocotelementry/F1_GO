@@ -55,6 +55,7 @@ var (
 	atm_car_status_packet                  = make(chan structs.PacketCarStatusData)
 	atm_race_event_directory               = make(chan structs.RaceEventDirectory)
 	redis_done                             = make(chan bool)
+	current_session_uid                    = uint64(0)
 )
 
 // Client is a middleman between the websocket connection and the hub.
@@ -443,10 +444,18 @@ func getGameData(hub *Hub) {
 	// Set number of SETs to redis database to zero
 	incrementing_packet_number := 0
 
+	// Set new session start code recieved to false.
+	recieved_session_start_code := false
+
 	// Redis database format:
 	// Session_uid:packet_id:incrementing_packet_number									This is for packets
 	// Session_uid:"Incrementing_packet_number"								This is for knowing the max value of incrementing_packet_number
 	// session_UIDs																						This is a list for keeping track of what session_UIDs are in the redis database
+
+	// Set the number of sessions to 0
+	if _, err := redis_conn.Do("SET", "number_of_sessions", "0"); err != nil {
+		fmt.Println("Initializing number_of_sessions to 0 failed:", err)
+	}
 
 	for {
 		buf := make([]byte, 1341)
@@ -470,6 +479,31 @@ func getGameData(hub *Hub) {
 
 		// Depending on which packet we have, which we find by looking at header.M_packetId
 		// We use a switch statement to then read the whole binary udp packet into its associated struct
+
+		if header.M_packetId != 3 {
+			if recieved_session_start_code == false {
+				// Set new session start code recieved to true
+				recieved_session_start_code = true
+
+				// Set the current_session_uid to the current_session_uid
+				current_session_uid = Event_packet.M_header.M_sessionUID
+
+				session_UIDs_SADD_integer_reply, err := redis_conn.Do("SADD", "session_UIDs", (session_uid_Prefix))
+				if err != nil {
+					fmt.Println("SADD session_UIDs failed:", err)
+				}
+
+				log.Println("Packets recived for new session without recivicing a session_start_code \nCould be due to starting up during an already ongoing session:")
+
+				if session_UIDs_SADD_integer_reply == int64(0) {
+					fmt.Println("\nSession with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", session_uid_Prefix, "\n")
+				} else {
+					if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":session_start_time"), &structs.Session_start{time.Now()}); err != nil {
+						fmt.Println("Setting session_start_time to failed:", err)
+					}
+				}
+			}
+		}
 
 		switch header.M_packetId {
 		case 0:
@@ -557,46 +591,65 @@ func getGameData(hub *Hub) {
 			}
 
 			if Equal(Event_packet.M_eventStringCode, session_start_code) {
-				number_of_sessions_exists_integer_reply, err := redis_conn.Do("EXISTS", "number_of_sessions")
+				// Set new session start code recieved to true
+				recieved_session_start_code = true
 
+				// number_of_sessions_exists_integer_reply, err := redis_conn.Do("EXISTS", "number_of_sessions")
+
+				// Set the current_session_uid to the current_session_uid
+				current_session_uid = Event_packet.M_header.M_sessionUID
+
+				// if err != nil {
+				// 	fmt.Println("Checking if number_of_sessions exists failed:", err)
+				// }
+
+				if _, err := redis_conn.Do("INCR", "number_of_sessions"); err != nil {
+					fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
+				}
+
+				// if number_of_sessions_exists_integer_reply == int64(1) {
+				// 	if _, err := redis_conn.Do("INCR", "number_of_sessions"); err != nil {
+				// 		fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
+				// 	}
+				// } else {
+				// 	if _, err := redis_conn.Do("SET", "number_of_sessions", "1"); err != nil {
+				// 		fmt.Println("Setting number_of_sessions to 1 failed:", err)
+				// 	}
+				// }
+
+				// session_UIDs_exists_integer_reply, err := redis_conn.Do("EXISTS", "session_UIDs")
+				// if err != nil {
+				// 	fmt.Println("Checking if session_UIDs exists failed:", err)
+				// }
+
+				session_UIDs_SADD_integer_reply, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID))
 				if err != nil {
-					fmt.Println("Checking if number_of_sessions exists failed:", err)
+					fmt.Println("SADD session_UIDs failed:", err)
 				}
 
-				if number_of_sessions_exists_integer_reply == int64(1) {
-					if _, err := redis_conn.Do("INCR", "number_of_sessions"); err != nil {
-						fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
-					}
-				} else {
-					if _, err := redis_conn.Do("SET", "number_of_sessions", "1"); err != nil {
-						fmt.Println("Setting number_of_sessions to 1 failed:", err)
-					}
+				if session_UIDs_SADD_integer_reply == int64(0) {
+					fmt.Println("\nSession with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", Event_packet.M_header.M_sessionUID, "\n")
 				}
 
-				session_UIDs_exists_integer_reply, err := redis_conn.Do("EXISTS", "session_UIDs")
-				if err != nil {
-					fmt.Println("Checking if session_UIDs exists failed:", err)
-				}
-
-				if session_UIDs_exists_integer_reply == int64(1) {
-					session_UIDs_SADD_integer_reply, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID))
-					if err != nil {
-						fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
-					}
-
-					fmt.Println("sadd session uid:", session_UIDs_SADD_integer_reply)
-
-					if session_UIDs_SADD_integer_reply == int64(0) {
-						fmt.Println("\nSession with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", Event_packet.M_header.M_sessionUID, "\n")
-					}
-					// else {
-					// 	incrementing_packet_number = 0
-					// }
-				} else {
-					if _, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID)); err != nil {
-						fmt.Println("Setting number_of_sessions to 1 failed:", err)
-					}
-				}
+				// if session_UIDs_exists_integer_reply == int64(1) {
+				// 	session_UIDs_SADD_integer_reply, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID))
+				// 	if err != nil {
+				// 		fmt.Println("SADD session_UIDs failed:", err)
+				// 	}
+				//
+				// 	fmt.Println("sadd session uid:", session_UIDs_SADD_integer_reply)
+				//
+				// 	if session_UIDs_SADD_integer_reply == int64(0) {
+				// 		fmt.Println("\nSession with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", Event_packet.M_header.M_sessionUID, "\n")
+				// 	}
+				// 	// else {
+				// 	// 	incrementing_packet_number = 0
+				// 	// }
+				// } else {
+				// 	if _, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID)); err != nil {
+				// 		fmt.Println("SADD session_UIDs failed:", err)
+				// 	}
+				// }
 
 				// Add session start time to redis database
 				// Format is as follows:
@@ -610,6 +663,9 @@ func getGameData(hub *Hub) {
 			// term use in a MYSQL database, discard the session, or hold on to it until our redis database reaches its size limit or its amount
 			// of sessions limit.
 			if Equal(Event_packet.M_eventStringCode, session_end_code) {
+
+				// Set new session start code recieved to false
+				recieved_session_start_code = false
 
 				// fmt.Println(strconv.FormatUint(Event_packet.M_header.M_sessionUID, 10) + ":Incrementing_packet_number")
 
@@ -828,6 +884,50 @@ func getGameData(hub *Hub) {
 			}
 			incrementing_packet_number += 1
 			incrementing_telemetry_packet_number += 1
+
+			// Add data from telemetry to catchUp stuff
+			//
+			// speed
+			if _, err := redis_conn.Do("LPUSH", "raceSpeed", Telemetry_packet.M_carTelemetryData[Telemetry_packet.M_header.M_playerCarIndex].M_speed); err != nil {
+				fmt.Println("Lpush M_speed to reddis catchUp failed:", err)
+			}
+			if _, err := redis_conn.Do("LTRIM", "raceSpeed", 0, 1499); err != nil {
+				fmt.Println("LTRIM M_speed to reddis catchUp failed:", err)
+			}
+
+			// engine rpms
+			if _, err := redis_conn.Do("LPUSH", "engineRevs", Telemetry_packet.M_carTelemetryData[Telemetry_packet.M_header.M_playerCarIndex].M_engineRPM); err != nil {
+				fmt.Println("Lpush M_engineRPM to reddis catchUp failed:", err)
+			}
+			if _, err := redis_conn.Do("LTRIM", "engineRevs", 0, 1499); err != nil {
+				fmt.Println("LTRIM M_engineRPM to reddis catchUp failed:", err)
+			}
+
+			// gear
+			if _, err := redis_conn.Do("LPUSH", "gearChanges", Telemetry_packet.M_carTelemetryData[Telemetry_packet.M_header.M_playerCarIndex].M_gear); err != nil {
+				fmt.Println("Lpush M_gear to reddis catchUp failed:", err)
+			}
+			if _, err := redis_conn.Do("LTRIM", "gearChanges", 0, 1499); err != nil {
+				fmt.Println("LTRIM M_gear to reddis catchUp failed:", err)
+			}
+
+			// Lpush to catchUp for both throttle and brake applications as separate
+			// throttle
+			if _, err := redis_conn.Do("LPUSH", "throttleApplication", Telemetry_packet.M_carTelemetryData[Telemetry_packet.M_header.M_playerCarIndex].M_throttle); err != nil {
+				fmt.Println("Lpush M_throttle to reddis catchUp failed:", err)
+			}
+			if _, err := redis_conn.Do("LTRIM", "throttleApplication", 0, 1499); err != nil {
+				fmt.Println("LTRIM M_throttle to reddis catchUp failed:", err)
+			}
+
+			// brake
+			if _, err := redis_conn.Do("LPUSH", "brakeApplication", Telemetry_packet.M_carTelemetryData[Telemetry_packet.M_header.M_playerCarIndex].M_brake); err != nil {
+				fmt.Println("Lpush M_brake to reddis catchUp failed:", err)
+			}
+			if _, err := redis_conn.Do("LTRIM", "brakeApplication", 0, 1499); err != nil {
+				fmt.Println("LTRIM M_brake to reddis catchUp failed:", err)
+			}
+
 		case 7:
 			// If the packet we received is the car_status_packet, read its binary into our car_status_packet struct
 			if err := binary.Read(packet_bytes_reader, binary.LittleEndian, &Car_status_packet); err != nil {

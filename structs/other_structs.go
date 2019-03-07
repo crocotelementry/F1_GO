@@ -62,3 +62,21 @@ type Save_to_database_status struct {
 	Total_current  int
 	Total_packets  int
 }
+
+// type RaceSpeed_struct_mini struct {
+// 	raceSpeed [1000]interface {}
+// }
+
+// type CatchUp_data struct {
+// 	Data []int
+// }
+
+type CatchUp_struct struct {
+	M_header PacketHeader // Header
+
+	RaceSpeed_data           []int
+	EngineRevs_data          []int
+	GearChanges_data         []int
+	ThrottleApplication_data []int
+	BrakeApplication_data    []int
+}

@@ -25,6 +25,13 @@ var popup = document.getElementById('save_to_database_popup');
 var popup_save_open = document.getElementById("save_session_nav_button");
 // Get the <span> element that closes the popup
 var popup_close = document.getElementsByClassName("close")[0];
+// Get the popup_mysql_progress stuff
+// saving packet
+var popup_progress_title;
+var popup_progress_canvas;
+var popup_progress_canvas_container;
+var popup_progress_ctx;
+var progress_multiplier;
 
 
 // create an array with the pit data strings
@@ -171,6 +178,7 @@ var ws = new WebSocket('ws://localhost:8080/ws');
 // Function that shifts the chart
 function chart_shift(chart_data, new_graph_points) {
   // If our chart is full with data, delete the furthest left
+  // console.log(chart_points_number);
   if (chart_data.length > chart_points_number) {
     chart_data.splice(0, new_graph_points);
   };
@@ -185,6 +193,26 @@ function chart_shift(chart_data, new_graph_points) {
 // Function to clear the chart before redraw
 function clear_chart(chart_ctx, chart_canvas) {
   chart_ctx.clearRect(0, 0, chart_canvas.width, chart_canvas.height);
+}
+
+// Function to draw the chart
+function draw_chart_makeUp(chart_data, chart_ctx, chart_canvas, new_graph_points) {
+  // First we need to clear the chart
+
+  var previous_points = chart_data[0];
+
+  // Begin the path of the line chart
+  chart_ctx.moveTo(previous_points[0], previous_points[1]);
+  chart_ctx.beginPath();
+
+
+  for (x = 0; x < chart_data.length; x++) {
+    chart_ctx.moveTo(previous_points[0], previous_points[1]);
+    chart_ctx.lineTo(chart_data[x][0], chart_data[x][1]);
+    previous_points = chart_data[x];
+  };
+
+  chart_ctx.stroke();
 }
 
 // Function to draw the chart
@@ -285,6 +313,42 @@ function intTime_to_timeTime(time_str) {
 
 function save_to_database(uid) {
   var uid_json = '{"type":"add", "uid":' + uid + '}';
+
+  var status_body = document.getElementById(uid);
+
+  var status_content = document.createElement('div');
+  status_content.className = "popup_mysql_progress_content";
+
+
+  // motion packet
+  var mp_div = document.createElement('div');
+  mp_div.className = "popup_progress_data_row";
+  var popup_progress_data_left = document.createElement('div');
+  popup_progress_data_left.id = "popup_progress_data_title";
+  popup_progress_canvas_container = document.createElement('div');
+  popup_progress_canvas_container.id = "popup_progress_canvas_container";
+  // add title to left
+  popup_progress_title = document.createElement('span');
+  popup_progress_title.className = "popup_progress_title";
+  // add canvas to right
+  popup_progress_canvas = document.createElement('canvas');
+  popup_progress_canvas.id = "popup_progress_canvas";
+
+
+
+  popup_progress_data_left.appendChild(popup_progress_title);
+  popup_progress_canvas_container.appendChild(popup_progress_canvas);
+  mp_div.appendChild(popup_progress_data_left);
+  mp_div.appendChild(popup_progress_canvas_container);
+
+
+  status_content.appendChild(mp_div);
+
+  status_body.appendChild(status_content);
+
+  status_body.style.display = "block";
+
+
   ws.send(uid_json);
 }
 
@@ -304,13 +368,19 @@ function add_session_row(session_uid, session_start, session_end) {
   var button_div = document.createElement('div');
   button_div.innerHTML = '<input type="button" class="save_session_button" data-uid="' + session_uid + '" value="SAVE" onclick="save_to_database(this.dataset.uid)">';
 
-
   new_div.appendChild(uid)
   new_div.appendChild(start)
   new_div.appendChild(end)
   new_div.appendChild(button_div)
 
   document.getElementById('popup_body').appendChild(new_div);
+
+
+  var status_body = document.createElement('div');
+  status_body.className = 'popup_mysql_progress';
+  status_body.id = session_uid;
+
+  document.getElementById('popup_body').appendChild(status_body);
 }
 
 // Uncomment and alter to display when the websocket is closed from the servers end
@@ -387,6 +457,115 @@ ws.onmessage = function(event) {
       }
 
       break;
+
+      // Case 31, if data inbound is for Save_to_database_status
+    case 31:
+      //
+      // console.log("MYSQL PROGRESS DATA:", data);
+
+      switch (data.Status) {
+        case "initial":
+          // popup_progress_canvas
+          popup_progress_total = data.Total_packets;
+          // popup_progress_canvas = document.getElementById("popup_progress_canvas");
+          popup_progress_canvas.width = popup_progress_canvas_container.offsetWidth;
+          popup_progress_canvas.height = popup_progress_canvas_container.offsetHeight;
+          // Get the canvas '2d' object, which can be used to draw text, lines, boxes, circles, and more - on the canvas.
+          // We do this since canvas doesnt actually let us draw, it is simply a container
+          popup_progress_ctx = popup_progress_canvas.getContext("2d");
+          var popup_progress_canvas_height = popup_progress_canvas.height;
+          var popup_progress_canvas_width = popup_progress_canvas.width;
+          popup_progress_ctx.fillStyle = "#DDDDDD";
+          // Multiplier to convert speed in relation to canvas height where 0 is bottom and 350 km/h is the top
+          progress_multiplier = popup_progress_canvas_width / popup_progress_total;
+          popup_progress_ctx.fillRect(0, 0, progress_multiplier * data.Total_current, popup_progress_canvas.height);
+          break;
+
+        case "Saving":
+          switch (data.Current_packet) {
+            case 0:
+              if (popup_progress_title.innerHTML != "Saving: Motion Packet") {
+                popup_progress_title.innerHTML = "Motion Packet";
+              }
+              popup_progress_ctx.fillRect(0, 0, progress_multiplier * data.Total_current, popup_progress_canvas.height);
+              break;
+            case 1:
+              if (popup_progress_title.innerHTML != "Saving: Session Packet") {
+                popup_progress_title.innerHTML = "Session Packet";
+              }
+              popup_progress_ctx.fillRect(0, 0, progress_multiplier * data.Total_current, popup_progress_canvas.height);
+              break;
+            case 2:
+              if (popup_progress_title.innerHTML != "Saving: Lap Data Packet") {
+                popup_progress_title.innerHTML = "Lap Data Packet";
+              }
+              popup_progress_ctx.fillRect(0, 0, progress_multiplier * data.Total_current, popup_progress_canvas.height);
+              break;
+            case 3:
+              if (popup_progress_title.innerHTML != "Saving: Event Packet") {
+                popup_progress_title.innerHTML = "Event Packet";
+              }
+              popup_progress_ctx.fillRect(0, 0, progress_multiplier * data.Total_current, popup_progress_canvas.height);
+              break;
+            case 4:
+              if (popup_progress_title.innerHTML != "Saving: Participants Packet") {
+                popup_progress_title.innerHTML = "Participants Packet";
+              }
+              popup_progress_ctx.fillRect(0, 0, progress_multiplier * data.Total_current, popup_progress_canvas.height);
+              break;
+            case 5:
+              if (popup_progress_title.innerHTML != "Saving: Car Setups Packet") {
+                popup_progress_title.innerHTML = "Car Setups Packet";
+              }
+              popup_progress_ctx.fillRect(0, 0, progress_multiplier * data.Total_current, popup_progress_canvas.height);
+              break;
+            case 6:
+              if (popup_progress_title.innerHTML != "Saving: Car Telemety Packet") {
+                popup_progress_title.innerHTML = "Car Telemetry Packet";
+              }
+              popup_progress_ctx.fillRect(0, 0, progress_multiplier * data.Total_current, popup_progress_canvas.height);
+              break;
+            case 7:
+              if (popup_progress_title.innerHTML != "Saving: Car Status Packet") {
+                popup_progress_title.innerHTML = "Car Status Packet";
+              }
+              popup_progress_ctx.fillRect(0, 0, progress_multiplier * data.Total_current, popup_progress_canvas.height);
+              break;
+          }
+          break;
+
+        case "done":
+          popup_progress_title.innerHTML = "Completed"
+          console.log("Finished adding redis data for session uid to mysql database:", data.UID);
+          //
+          //
+          // TAKE AWAY SAVE BUTTON AND ADD REMOVE BUTTON
+          //
+          //
+          break;
+
+        default:
+          popup_progress_title.innerHTML = "Error!"
+          console.log("error with popup_progress data.Status switch statement");
+          break;
+      }
+      break;
+
+    case 32:
+
+      for (i = 0; i < (data.RaceSpeed_data).length; i++) {
+        speed_chart_data.push([speed_canvas_width + not_read_position_adder, data.RaceSpeed_data[((data.RaceSpeed_data).length - 1) - i] * speed_multiplier]);
+        rpm_chart_data.push([rpm_canvas_width + not_read_position_adder, data.EngineRevs_data[((data.EngineRevs_data).length - 1) - i] * rpm_multiplier]);
+        gear_chart_data.push([gear_canvas_width + not_read_position_adder, data.GearChanges_data[((data.GearChanges_data).length - 1) - i] * gear_multiplier]);
+        throttle_brake_chart_throttle_data.push([throttle_brake_canvas_width + not_read_position_adder, data.ThrottleApplication_data[((data.ThrottleApplication_data).length - 1) - i] * throttle_brake_multiplier]);
+        throttle_brake_chart_brake_data.push([throttle_brake_canvas_width + not_read_position_adder, data.BrakeApplication_data[((data.BrakeApplication_data).length - 1) - i] * throttle_brake_multiplier]);
+
+        not_read_position_adder += 1;
+      }
+
+      // console.log(switch_number, "catchUP!!!");
+      break;
+
     default:
       console.log(switch_number, "Invalid packeted id sent over websocket!\n", data);
       break;

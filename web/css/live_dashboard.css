@@ -126,17 +126,72 @@ body {
 /* Modal Body */
 
 #popup_body {
-  padding: 2px 16px;
+  /* padding: 2px 16px; */
   background-color: #254E58;
+  padding-bottom: 2em;
 }
 
 #popup_table_titles {
+  padding: 2px 16px;
   line-height: 2em;
   display: grid;
   grid: 2em / calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 3) calc(100% / 10);
 }
 
+.popup_mysql_progress {
+  display: none;
+  /* Hidden by default */
+  min-height: 2em;
+  width: 100%;
+  background-color: #112D32;
+}
+
+.popup_mysql_progress_content {
+  padding: 2px 16px;
+}
+
+.popup_progress_data_row {
+  height: 2em;
+  display: grid;
+  grid: 2em / calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 7);
+}
+
+.popup_progress_title {
+  line-height: 2em;
+}
+
+.popup_progress_data_right {
+  display: inline-block;
+  float: right;
+}
+
+.popup_progress_data_right .span {
+  display: flex;
+}
+
+.popup_progress_data_right :nth-child(1) {
+  order: 1;
+}
+
+.popup_progress_data_right :nth-child(2) {
+  order: 2;
+}
+
+.popup_progress_data_right :nth-child(3) {
+  order: 3;
+}
+
+/* .popup_mysql_progress_content div {
+  line-height: 2em;
+} */
+
+.popup_progress_current, .popup_progress_slash, .popup_progress_amount {
+  float: right;
+  display: inline-flex;
+}
+
 .popup_table_grid {
+  padding: 2px 16px;
   line-height: 3em;
   display: grid;
   grid: 3em / calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 3) calc(100% / 10);
