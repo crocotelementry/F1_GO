@@ -435,7 +435,7 @@ func add_race_event_directory_to_mysql(db *sql.DB, prepared_statement *sql.Stmt,
 	return nil
 }
 
-func add_motion_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketMotionData) error {
+func add_motion_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet *structs.PacketMotionData) error {
 	// First add motion_packet and get its id back
 	res, err := prepared_statement.Exec(
 		packet.M_header.M_sessionUID,
@@ -472,7 +472,9 @@ func add_motion_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_pr
 		packet.M_angularAccelerationZ,
 		packet.M_frontWheelsAngle)
 	if err != nil {
+		fmt.Println("\n")
 		fmt.Println("error adding motion_packet to mysql, error:", err)
+		fmt.Println("packet.M_header.M_sessionUID:", packet.M_header.M_sessionUID)
 		return err
 	} else {
 		// If successfull, Get the id of the motion_packet
@@ -514,7 +516,7 @@ func add_motion_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_pr
 	return nil
 }
 
-func add_session_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketSessionData) error {
+func add_session_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet *structs.PacketSessionData) error {
 	// First add session_packet and get its id back
 	res, err := prepared_statement.Exec(
 		packet.M_header.M_sessionUID,
@@ -561,7 +563,7 @@ func add_session_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_p
 	return nil
 }
 
-func add_lap_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketLapData) error {
+func add_lap_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet *structs.PacketLapData) error {
 	// First add lap_packet and get its id back
 	res, err := prepared_statement.Exec(
 		packet.M_header.M_sessionUID,
@@ -610,7 +612,7 @@ func add_lap_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepa
 	return nil
 }
 
-func add_event_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, packet structs.PacketEventData) error {
+func add_event_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, packet *structs.PacketEventData) error {
 	// First add lap_packet and get its id back
 	_, err := prepared_statement.Exec(
 		packet.M_header.M_sessionUID,
@@ -624,7 +626,7 @@ func add_event_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, packet 
 	return nil
 }
 
-func add_participant_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketParticipantsData) error {
+func add_participant_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet *structs.PacketParticipantsData) error {
 	// First add lap_packet and get its id back
 	res, err := prepared_statement.Exec(
 		packet.M_header.M_sessionUID,
@@ -663,7 +665,7 @@ func add_participant_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, c
 	return nil
 }
 
-func add_car_setup_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketCarSetupData) error {
+func add_car_setup_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet *structs.PacketCarSetupData) error {
 	// First add lap_packet and get its id back
 	res, err := prepared_statement.Exec(
 		packet.M_header.M_sessionUID,
@@ -714,7 +716,7 @@ func add_car_setup_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car
 	return nil
 }
 
-func add_telemetry_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketCarTelemetryData) error {
+func add_telemetry_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet *structs.PacketCarTelemetryData) error {
 	// First add lap_packet and get its id back
 	res, err := prepared_statement.Exec(
 		packet.M_header.M_sessionUID,
@@ -772,7 +774,7 @@ func add_telemetry_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car
 	return nil
 }
 
-func add_car_status_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet structs.PacketCarStatusData) error {
+func add_car_status_packet_to_mysql(db *sql.DB, prepared_statement *sql.Stmt, car_prepared_statement *sql.Stmt, packet *structs.PacketCarStatusData) error {
 	// First add lap_packet and get its id back
 	res, err := prepared_statement.Exec(
 		packet.M_header.M_sessionUID,

@@ -45,17 +45,18 @@ var (
 	incrementing_car_setup_packet_number   = 0
 	incrementing_telemetry_packet_number   = 0
 	incrementing_car_status_packet_number  = 0
-	atm_motion_packet                      = make(chan structs.PacketMotionData)
-	atm_session_packet                     = make(chan structs.PacketSessionData)
-	atm_lap_packet                         = make(chan structs.PacketLapData)
-	atm_event_packet                       = make(chan structs.PacketEventData)
-	atm_participant_packet                 = make(chan structs.PacketParticipantsData)
-	atm_car_setup_packet                   = make(chan structs.PacketCarSetupData)
-	atm_telemetry_packet                   = make(chan structs.PacketCarTelemetryData)
-	atm_car_status_packet                  = make(chan structs.PacketCarStatusData)
+	atm_motion_packet                      = make(chan *structs.PacketMotionData)
+	atm_session_packet                     = make(chan *structs.PacketSessionData)
+	atm_lap_packet                         = make(chan *structs.PacketLapData)
+	atm_event_packet                       = make(chan *structs.PacketEventData)
+	atm_participant_packet                 = make(chan *structs.PacketParticipantsData)
+	atm_car_setup_packet                   = make(chan *structs.PacketCarSetupData)
+	atm_telemetry_packet                   = make(chan *structs.PacketCarTelemetryData)
+	atm_car_status_packet                  = make(chan *structs.PacketCarStatusData)
 	atm_race_event_directory               = make(chan structs.RaceEventDirectory)
 	redis_done                             = make(chan bool)
 	current_session_uid                    = uint64(0)
+	previous_session_uid                   = uint64(0)
 )
 
 // Client is a middleman between the websocket connection and the hub.
@@ -133,6 +134,15 @@ func getRedisDataForMysql(hub *Hub, chosen_session_uid uint64) {
 	// log.Println("1")
 
 	session_uid := strconv.FormatUint(chosen_session_uid, 10)
+
+	save_Motion_packet := new(structs.PacketMotionData)
+	save_Session_packet := new(structs.PacketSessionData)
+	save_Lap_packet := new(structs.PacketLapData)
+	save_Event_packet := new(structs.PacketEventData)
+	save_Participant_packet := new(structs.PacketParticipantsData)
+	save_Car_setup_packet := new(structs.PacketCarSetupData)
+	save_Telemetry_packet := new(structs.PacketCarTelemetryData)
+	save_Car_status_packet := new(structs.PacketCarStatusData)
 
 	// log.Println("2")
 
@@ -271,100 +281,108 @@ func getRedisDataForMysql(hub *Hub, chosen_session_uid uint64) {
 
 			switch packet_type {
 			case 0:
-				err := json.Unmarshal(packet_data.([]byte), &Motion_packet)
+				err := json.Unmarshal(packet_data.([]byte), &save_Motion_packet)
 				if err != nil {
 					fmt.Println(err)
 				}
+				atm_motion_packet <- save_Motion_packet
+
 				progress_status.Packet_0 = packet_number
 				hub.broadcast <- &Udp_data{
 					Id:                      31,
 					Save_to_database_status: progress_status,
 				}
-				atm_motion_packet <- Motion_packet
 
 			case 1:
-				err := json.Unmarshal(packet_data.([]byte), &Session_packet)
+				err := json.Unmarshal(packet_data.([]byte), &save_Session_packet)
 				if err != nil {
 					fmt.Println(err)
 				}
+				atm_session_packet <- save_Session_packet
+
 				progress_status.Packet_1 = packet_number
 				hub.broadcast <- &Udp_data{
 					Id:                      31,
 					Save_to_database_status: progress_status,
 				}
-				atm_session_packet <- Session_packet
 
 			case 2:
-				err := json.Unmarshal(packet_data.([]byte), &Lap_packet)
+				err := json.Unmarshal(packet_data.([]byte), &save_Lap_packet)
 				if err != nil {
 					fmt.Println(err)
 				}
+				atm_lap_packet <- save_Lap_packet
+
 				progress_status.Packet_2 = packet_number
 				hub.broadcast <- &Udp_data{
 					Id:                      31,
 					Save_to_database_status: progress_status,
 				}
-				atm_lap_packet <- Lap_packet
 
 			case 3:
-				err := json.Unmarshal(packet_data.([]byte), &Event_packet)
+				err := json.Unmarshal(packet_data.([]byte), &save_Event_packet)
 				if err != nil {
 					fmt.Println(err)
 				}
+				atm_event_packet <- save_Event_packet
+
 				progress_status.Packet_3 = packet_number
 				hub.broadcast <- &Udp_data{
 					Id:                      31,
 					Save_to_database_status: progress_status,
 				}
-				atm_event_packet <- Event_packet
 
 			case 4:
-				err := json.Unmarshal(packet_data.([]byte), &Participant_packet)
+				err := json.Unmarshal(packet_data.([]byte), &save_Participant_packet)
 				if err != nil {
 					fmt.Println(err)
 				}
+				atm_participant_packet <- save_Participant_packet
+
 				progress_status.Packet_4 = packet_number
 				hub.broadcast <- &Udp_data{
 					Id:                      31,
 					Save_to_database_status: progress_status,
 				}
-				atm_participant_packet <- Participant_packet
 
 			case 5:
-				err := json.Unmarshal(packet_data.([]byte), &Car_setup_packet)
+				err := json.Unmarshal(packet_data.([]byte), &save_Car_setup_packet)
 				if err != nil {
 					fmt.Println(err)
 				}
+				atm_car_setup_packet <- save_Car_setup_packet
+
 				progress_status.Packet_5 = packet_number
 				hub.broadcast <- &Udp_data{
 					Id:                      31,
 					Save_to_database_status: progress_status,
 				}
-				atm_car_setup_packet <- Car_setup_packet
 
 			case 6:
-				err := json.Unmarshal(packet_data.([]byte), &Telemetry_packet)
+				err := json.Unmarshal(packet_data.([]byte), &save_Telemetry_packet)
 				if err != nil {
 					fmt.Println(err)
 				}
+				atm_telemetry_packet <- save_Telemetry_packet
+
 				progress_status.Packet_6 = packet_number
 				hub.broadcast <- &Udp_data{
 					Id:                      31,
 					Save_to_database_status: progress_status,
 				}
-				atm_telemetry_packet <- Telemetry_packet
 
 			case 7:
-				err := json.Unmarshal(packet_data.([]byte), &Car_status_packet)
+				err := json.Unmarshal(packet_data.([]byte), &save_Car_status_packet)
 				if err != nil {
 					fmt.Println(err)
 				}
+				atm_car_status_packet <- save_Car_status_packet
+
 				progress_status.Packet_7 = packet_number
 				hub.broadcast <- &Udp_data{
 					Id:                      31,
 					Save_to_database_status: progress_status,
 				}
-				atm_car_status_packet <- Car_status_packet
 
 			}
 		}
@@ -445,7 +463,7 @@ func getGameData(hub *Hub) {
 	incrementing_packet_number := 0
 
 	// Set new session start code recieved to false.
-	recieved_session_start_code := false
+	recieved_new_uid := false
 
 	// Redis database format:
 	// Session_uid:packet_id:incrementing_packet_number									This is for packets
@@ -481,29 +499,42 @@ func getGameData(hub *Hub) {
 		// We use a switch statement to then read the whole binary udp packet into its associated struct
 
 		if header.M_packetId != 3 {
-			if recieved_session_start_code == false {
+			if recieved_new_uid == false {
 				// Set new session start code recieved to true
-				recieved_session_start_code = true
+				recieved_new_uid = true
 
 				// Set the current_session_uid to the current_session_uid
-				current_session_uid = Event_packet.M_header.M_sessionUID
+				previous_session_uid = current_session_uid
+				current_session_uid = header.M_sessionUID
+
+				log.Println("New Session Start! uid:", header.M_sessionUID)
+
+				// fmt.Println("current_session_uid:", current_session_uid)
 
 				session_UIDs_SADD_integer_reply, err := redis_conn.Do("SADD", "session_UIDs", (session_uid_Prefix))
 				if err != nil {
 					fmt.Println("SADD session_UIDs failed:", err)
 				}
 
-				log.Println("Packets recived for new session without recivicing a session_start_code \nCould be due to starting up during an already ongoing session:")
+				// log.Println("Packets recived for new session without recivicing a session_start_code \nCould be due to starting up during an already ongoing session:")
 
 				if session_UIDs_SADD_integer_reply == int64(0) {
 					fmt.Println("\nSession with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", session_uid_Prefix, "\n")
 				} else {
+
+					if _, err := redis_conn.Do("INCR", "number_of_sessions"); err != nil {
+						fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
+					}
+
 					if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":session_start_time"), &structs.Session_start{time.Now()}); err != nil {
 						fmt.Println("Setting session_start_time to failed:", err)
 					}
+
 				}
 			}
 		}
+
+		// fmt.Println("header.M_sessionUID:", header.M_sessionUID)
 
 		switch header.M_packetId {
 		case 0:
@@ -525,7 +556,7 @@ func getGameData(hub *Hub) {
 				fmt.Println(err)
 			}
 
-			if _, err := redis_conn.Do("SET", (session_uid_Prefix + ":0:" + strconv.Itoa(incrementing_motion_packet_number)), json_motion_packet); err != nil {
+			if _, err := redis_conn.Do("SET", (strconv.FormatUint(Motion_packet.M_header.M_sessionUID, 10) + ":0:" + strconv.Itoa(incrementing_motion_packet_number)), json_motion_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
 				incrementing_packet_number -= 1
 				incrementing_motion_packet_number -= 1
@@ -551,7 +582,7 @@ func getGameData(hub *Hub) {
 				fmt.Println(err)
 			}
 
-			if _, err := redis_conn.Do("SET", (session_uid_Prefix + ":1:" + strconv.Itoa(incrementing_session_packet_number)), json_session_packet); err != nil {
+			if _, err := redis_conn.Do("SET", (strconv.FormatUint(Session_packet.M_header.M_sessionUID, 10) + ":1:" + strconv.Itoa(incrementing_session_packet_number)), json_session_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
 				incrementing_packet_number -= 1
 				incrementing_session_packet_number -= 1
@@ -577,7 +608,7 @@ func getGameData(hub *Hub) {
 				fmt.Println(err)
 			}
 
-			if _, err := redis_conn.Do("SET", (session_uid_Prefix + ":2:" + strconv.Itoa(incrementing_lap_packet_number)), json_lap_packet); err != nil {
+			if _, err := redis_conn.Do("SET", (strconv.FormatUint(Lap_packet.M_header.M_sessionUID, 10) + ":2:" + strconv.Itoa(incrementing_lap_packet_number)), json_lap_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
 				incrementing_packet_number -= 1
 				incrementing_lap_packet_number -= 1
@@ -590,74 +621,81 @@ func getGameData(hub *Hub) {
 				fmt.Println("binary.Read event_packet failed:", err)
 			}
 
-			if Equal(Event_packet.M_eventStringCode, session_start_code) {
-				// Set new session start code recieved to true
-				recieved_session_start_code = true
+			// fmt.Println("New EVENT PACKET:", Event_packet)
 
-				// number_of_sessions_exists_integer_reply, err := redis_conn.Do("EXISTS", "number_of_sessions")
+			// if Equal(Event_packet.M_eventStringCode, session_start_code) {
+			// Set new session start code recieved to true
+			// recieved_new_uid = true
 
-				// Set the current_session_uid to the current_session_uid
-				current_session_uid = Event_packet.M_header.M_sessionUID
+			// number_of_sessions_exists_integer_reply, err := redis_conn.Do("EXISTS", "number_of_sessions")
 
-				// if err != nil {
-				// 	fmt.Println("Checking if number_of_sessions exists failed:", err)
-				// }
+			// Set the previous UID to previous and then
+			// Set the current_session_uid to the current_session_uid
+			// previous_session_uid = current_session_uid
+			// current_session_uid = Event_packet.M_header.M_sessionUID
 
-				if _, err := redis_conn.Do("INCR", "number_of_sessions"); err != nil {
-					fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
-				}
+			// fmt.Println("session start code recieved! uid:", header.M_sessionUID)
+			// fmt.Println("Current session uid", current_session_uid)
 
-				// if number_of_sessions_exists_integer_reply == int64(1) {
-				// 	if _, err := redis_conn.Do("INCR", "number_of_sessions"); err != nil {
-				// 		fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
-				// 	}
-				// } else {
-				// 	if _, err := redis_conn.Do("SET", "number_of_sessions", "1"); err != nil {
-				// 		fmt.Println("Setting number_of_sessions to 1 failed:", err)
-				// 	}
-				// }
+			// if err != nil {
+			// 	fmt.Println("Checking if number_of_sessions exists failed:", err)
+			// }
 
-				// session_UIDs_exists_integer_reply, err := redis_conn.Do("EXISTS", "session_UIDs")
-				// if err != nil {
-				// 	fmt.Println("Checking if session_UIDs exists failed:", err)
-				// }
+			// if _, err := redis_conn.Do("INCR", "number_of_sessions"); err != nil {
+			// 	fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
+			// }
 
-				session_UIDs_SADD_integer_reply, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID))
-				if err != nil {
-					fmt.Println("SADD session_UIDs failed:", err)
-				}
+			// if number_of_sessions_exists_integer_reply == int64(1) {
+			// 	if _, err := redis_conn.Do("INCR", "number_of_sessions"); err != nil {
+			// 		fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
+			// 	}
+			// } else {
+			// 	if _, err := redis_conn.Do("SET", "number_of_sessions", "1"); err != nil {
+			// 		fmt.Println("Setting number_of_sessions to 1 failed:", err)
+			// 	}
+			// }
 
-				if session_UIDs_SADD_integer_reply == int64(0) {
-					fmt.Println("\nSession with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", Event_packet.M_header.M_sessionUID, "\n")
-				}
+			// session_UIDs_exists_integer_reply, err := redis_conn.Do("EXISTS", "session_UIDs")
+			// if err != nil {
+			// 	fmt.Println("Checking if session_UIDs exists failed:", err)
+			// }
 
-				// if session_UIDs_exists_integer_reply == int64(1) {
-				// 	session_UIDs_SADD_integer_reply, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID))
-				// 	if err != nil {
-				// 		fmt.Println("SADD session_UIDs failed:", err)
-				// 	}
-				//
-				// 	fmt.Println("sadd session uid:", session_UIDs_SADD_integer_reply)
-				//
-				// 	if session_UIDs_SADD_integer_reply == int64(0) {
-				// 		fmt.Println("\nSession with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", Event_packet.M_header.M_sessionUID, "\n")
-				// 	}
-				// 	// else {
-				// 	// 	incrementing_packet_number = 0
-				// 	// }
-				// } else {
-				// 	if _, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID)); err != nil {
-				// 		fmt.Println("SADD session_UIDs failed:", err)
-				// 	}
-				// }
+			// session_UIDs_SADD_integer_reply, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID))
+			// if err != nil {
+			// 	fmt.Println("SADD session_UIDs failed:", err)
+			// }
+			//
+			// if session_UIDs_SADD_integer_reply == int64(0) {
+			// 	fmt.Println("\nSession with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", Event_packet.M_header.M_sessionUID, "\n")
+			// }
 
-				// Add session start time to redis database
-				// Format is as follows:
-				// Session_UID:session_start_time
-				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":session_start_time"), &structs.Session_start{time.Now()}); err != nil {
-					fmt.Println("Setting session_start_time to failed:", err)
-				}
-			}
+			// if session_UIDs_exists_integer_reply == int64(1) {
+			// 	session_UIDs_SADD_integer_reply, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID))
+			// 	if err != nil {
+			// 		fmt.Println("SADD session_UIDs failed:", err)
+			// 	}
+			//
+			// 	fmt.Println("sadd session uid:", session_UIDs_SADD_integer_reply)
+			//
+			// 	if session_UIDs_SADD_integer_reply == int64(0) {
+			// 		fmt.Println("\nSession with the following UID is already added to redis database,\nreceived session start code but session UID did not change from previous session UID:", Event_packet.M_header.M_sessionUID, "\n")
+			// 	}
+			// 	// else {
+			// 	// 	incrementing_packet_number = 0
+			// 	// }
+			// } else {
+			// 	if _, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID)); err != nil {
+			// 		fmt.Println("SADD session_UIDs failed:", err)
+			// 	}
+			// }
+
+			// Add session start time to redis database
+			// Format is as follows:
+			// Session_UID:session_start_time
+			// if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":session_start_time"), &structs.Session_start{time.Now()}); err != nil {
+			// 	fmt.Println("Setting session_start_time to failed:", err)
+			// }
+			// }
 
 			// If we receive a session end code, send a data alert over the websocket to ask the user if they want to save the session for long
 			// term use in a MYSQL database, discard the session, or hold on to it until our redis database reaches its size limit or its amount
@@ -665,70 +703,75 @@ func getGameData(hub *Hub) {
 			if Equal(Event_packet.M_eventStringCode, session_end_code) {
 
 				// Set new session start code recieved to false
-				recieved_session_start_code = false
+				recieved_new_uid = false
+
+				log.Println("session end code recieved! uid:", header.M_sessionUID)
 
 				// fmt.Println(strconv.FormatUint(Event_packet.M_header.M_sessionUID, 10) + ":Incrementing_packet_number")
 
-				sue_return := session_UID_exists(Event_packet.M_header.M_sessionUID)
-
-				// fmt.Println(sue_return)
-
-				if sue_return == false {
-					_, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID))
-					if err != nil {
-						fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
-					}
-				}
+				// sue_return := session_UID_exists(Event_packet.M_header.M_sessionUID)
+				//
+				// // fmt.Println(sue_return)
+				//
+				// if sue_return == false {
+				// 	_, err := redis_conn.Do("SADD", "session_UIDs", (Event_packet.M_header.M_sessionUID))
+				// 	if err != nil {
+				// 		fmt.Println("Incrementing number_of_sessions by 1 failed:", err)
+				// 	}
+				// }
 
 				// Add session end time to redis database
 				// Format is as follows:
 				// Session_UID:session_end_time
-				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":session_end_time"), &structs.Session_end{time.Now()}); err != nil {
+
+				temp_uid := strconv.FormatUint(Event_packet.M_header.M_sessionUID, 10)
+
+				if _, err := redis_conn.Do("SET", (temp_uid + ":session_end_time"), &structs.Session_end{time.Now()}); err != nil {
 					fmt.Println("Setting session_end_time to failed:", err)
 				}
 
 				// Session_uid:Incrementing_packet_number
-				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":Incrementing_packet_number"), strconv.Itoa(int(incrementing_packet_number))); err != nil {
+				if _, err := redis_conn.Do("SET", (temp_uid + ":Incrementing_packet_number"), strconv.Itoa(int(incrementing_packet_number))); err != nil {
 					log.Println("             ", "Setting Incrementing_packet_number failed:", err)
 				}
 
 				// set incrementing_motion_packet_number for motion packets and its session_UIDs
-				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":0:Incrementing_packet_number"), incrementing_motion_packet_number); err != nil {
+				if _, err := redis_conn.Do("SET", (temp_uid + ":0:Incrementing_packet_number"), incrementing_motion_packet_number); err != nil {
 					log.Println("             ", "Setting incrementing_motion_packet_number failed:", err)
 				}
 
 				// set incrementing_session_packet_number for motion packets and its session_UIDs
-				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":1:Incrementing_packet_number"), incrementing_session_packet_number); err != nil {
+				if _, err := redis_conn.Do("SET", (temp_uid + ":1:Incrementing_packet_number"), incrementing_session_packet_number); err != nil {
 					log.Println("             ", "Setting incrementing_session_packet_number failed:", err)
 				}
 
 				// set incrementing_lap_packet_number for motion packets and its session_UIDs
-				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":2:Incrementing_packet_number"), incrementing_lap_packet_number); err != nil {
+				if _, err := redis_conn.Do("SET", (temp_uid + ":2:Incrementing_packet_number"), incrementing_lap_packet_number); err != nil {
 					log.Println("             ", "Setting incrementing_lap_packet_number failed:", err)
 				}
 
 				// set incrementing_event_packet_number for motion packets and its session_UIDs
-				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":3:Incrementing_packet_number"), incrementing_event_packet_number); err != nil {
+				if _, err := redis_conn.Do("SET", (temp_uid + ":3:Incrementing_packet_number"), incrementing_event_packet_number); err != nil {
 					log.Println("             ", "Setting incrementing_event_packet_number failed:", err)
 				}
 
 				// set incrementing_participant_packet_number for motion packets and its session_UIDs
-				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":4:Incrementing_packet_number"), incrementing_participant_packet_number); err != nil {
+				if _, err := redis_conn.Do("SET", (temp_uid + ":4:Incrementing_packet_number"), incrementing_participant_packet_number); err != nil {
 					log.Println("             ", "Setting incrementing_participant_packet_number failed:", err)
 				}
 
 				// set incrementing_car_setup_packet_number for motion packets and its session_UIDs
-				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":5:Incrementing_packet_number"), incrementing_car_setup_packet_number); err != nil {
+				if _, err := redis_conn.Do("SET", (temp_uid + ":5:Incrementing_packet_number"), incrementing_car_setup_packet_number); err != nil {
 					log.Println("             ", "Setting incrementing_car_setup_packet_number failed:", err)
 				}
 
 				// set incrementing_telemetry_packet_number for motion packets and its session_UIDs
-				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":6:Incrementing_packet_number"), incrementing_telemetry_packet_number); err != nil {
+				if _, err := redis_conn.Do("SET", (temp_uid + ":6:Incrementing_packet_number"), incrementing_telemetry_packet_number); err != nil {
 					log.Println("             ", "Setting incrementing_telemetry_packet_number failed:", err)
 				}
 
 				// set incrementing_car_status_packet_number for motion packets and its session_UIDs
-				if _, err := redis_conn.Do("SET", (strconv.FormatUint(header.M_sessionUID, 10) + ":7:Incrementing_packet_number"), incrementing_car_status_packet_number); err != nil {
+				if _, err := redis_conn.Do("SET", (temp_uid + ":7:Incrementing_packet_number"), incrementing_car_status_packet_number); err != nil {
 					log.Println("             ", "Setting incrementing_car_status_packet_number failed:", err)
 				}
 
@@ -825,7 +868,7 @@ func getGameData(hub *Hub) {
 				fmt.Println(err)
 			}
 
-			if _, err := redis_conn.Do("SET", (session_uid_Prefix + ":4:" + strconv.Itoa(incrementing_participant_packet_number)), json_participant_packet); err != nil {
+			if _, err := redis_conn.Do("SET", (strconv.FormatUint(Participant_packet.M_header.M_sessionUID, 10) + ":4:" + strconv.Itoa(incrementing_participant_packet_number)), json_participant_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
 				incrementing_packet_number -= 1
 				incrementing_participant_packet_number -= 1
@@ -851,7 +894,7 @@ func getGameData(hub *Hub) {
 				fmt.Println(err)
 			}
 
-			if _, err := redis_conn.Do("SET", (session_uid_Prefix + ":5:" + strconv.Itoa(incrementing_car_setup_packet_number)), json_car_setup_packet); err != nil {
+			if _, err := redis_conn.Do("SET", (strconv.FormatUint(Car_setup_packet.M_header.M_sessionUID, 10) + ":5:" + strconv.Itoa(incrementing_car_setup_packet_number)), json_car_setup_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
 				incrementing_packet_number -= 1
 				incrementing_car_setup_packet_number -= 1
@@ -877,7 +920,7 @@ func getGameData(hub *Hub) {
 				fmt.Println(err)
 			}
 
-			if _, err := redis_conn.Do("SET", (session_uid_Prefix + ":6:" + strconv.Itoa(incrementing_telemetry_packet_number)), json_telemetry_packet); err != nil {
+			if _, err := redis_conn.Do("SET", (strconv.FormatUint(Telemetry_packet.M_header.M_sessionUID, 10) + ":6:" + strconv.Itoa(incrementing_telemetry_packet_number)), json_telemetry_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
 				incrementing_packet_number -= 1
 				incrementing_telemetry_packet_number -= 1
@@ -947,7 +990,7 @@ func getGameData(hub *Hub) {
 				fmt.Println(err)
 			}
 
-			if _, err := redis_conn.Do("SET", (session_uid_Prefix + ":7:" + strconv.Itoa(incrementing_car_status_packet_number)), json_car_status_packet); err != nil {
+			if _, err := redis_conn.Do("SET", (strconv.FormatUint(Car_status_packet.M_header.M_sessionUID, 10) + ":7:" + strconv.Itoa(incrementing_car_status_packet_number)), json_car_status_packet); err != nil {
 				fmt.Println("Adding json_motion_packet to Redis database failed:", err)
 				incrementing_packet_number -= 1
 				incrementing_car_status_packet_number -= 1
