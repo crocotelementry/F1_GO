@@ -3,17 +3,17 @@ var new_time_entry_sector_two = '00:00:00';
 var new_time_entry_sector_three = '00:00:00';
 var new_time_entry_lap_time = '00:00:00';
 
-var new_time_entry_html_part_one = '<div class="time_grid_entry new_lap_entry" id="';
-var new_time_entry_html_part_two = '"><div class="time_grid_data"><div class="lap_number"><span class="lap_number_text">';
-var new_time_entry_html_part_three = '</span></div><div class="sector_one"><span class="sector_one_text" id="';
-var new_time_entry_html_part_four = '_sector_one_text">';
-var new_time_entry_html_part_five = '</span></div><div class="sector_two"><span class="sector_two_text" id="';
-var new_time_entry_html_part_six = '_sector_two_text">';
-var new_time_entry_html_part_seven = '</span></div><div class="sector_three"><span class="sector_three_text" id="';
-var new_time_entry_html_part_eight = '_sector_three_text">';
-var new_time_entry_html_part_nine = '</span></div><div class="lap_time"><span class="lap_time_text" id="';
-var new_time_entry_html_part_ten = '_lap_time_text">';
-var new_time_entry_html_part_eleven = '</span></div></div></div>';
+// var new_time_entry_html_part_one    = '<div class="time_grid_entry new_lap_entry" id="';
+// var new_time_entry_html_part_two    = '"><div class="time_grid_data"><div class="lap_number"><span class="lap_number_text">';
+// var new_time_entry_html_part_three  = '</span></div><div class="sector_one"><span class="sector_one_text" id="';
+// var new_time_entry_html_part_four   = '_sector_one_text">';
+// var new_time_entry_html_part_five   = '</span></div><div class="sector_two"><span class="sector_two_text" id="';
+// var new_time_entry_html_part_six    = '_sector_two_text">';
+// var new_time_entry_html_part_seven  = '</span></div><div class="sector_three"><span class="sector_three_text" id="';
+// var new_time_entry_html_part_eight  = '_sector_three_text">';
+// var new_time_entry_html_part_nine   = '</span></div><div class="lap_time"><span class="lap_time_text" id="';
+// var new_time_entry_html_part_ten    = '_lap_time_text">';
+// var new_time_entry_html_part_eleven  = '</span></div></div></div>';
 
 var current_lap = 0;
 
@@ -40,6 +40,98 @@ var slowest_lap_number = 0;
 
 // Current lap time
 var current_lap_time;
+
+
+// <div class="time_grid_entry new_lap_entry" id="">
+//   <div class="time_grid_data">
+//     <div class="lap_number">
+//       <span class="lap_number_text"></span>
+//     </div>
+//     <div class="sector_one">
+//       <span class="sector_one_text" id="_sector_one_text"></span>
+//     </div>
+//     <div class="sector_two">
+//       <span class="sector_two_text" id="_sector_two_text"></span>
+//     </div>
+//     <div class="sector_three">
+//       <span class="sector_three_text" id="_sector_three_text"></span>\
+//     </div>
+//     <div class="lap_time">
+//       <span class="lap_time_text" id="_lap_time_text"></span>
+//     </div>
+//   </div>
+// </div>
+
+
+function add_time_row(lap_number) {
+  var new_lap_row = document.createElement('div');
+  new_lap_row.className = 'time_grid_entry new_lap_entry';
+  new_lap_row.id = "lap_" + lap_number;
+
+  var new_lap_data = document.createElement('div');
+  new_lap_data.className = 'time_grid_data';
+
+  var new_lap_number = document.createElement('div');
+  new_lap_number.className = 'lap_number';
+
+  var new_lap_number_text = document.createElement('span');
+  new_lap_number_text.className = 'lap_number_text';
+  new_lap_number_text.innerHTML = lap_number;
+
+
+  var new_sector_one = document.createElement('div');
+  new_sector_one.className = 'sector_one';
+
+  var new_sector_one_text = document.createElement('span');
+  new_sector_one_text.className = 'sector_one_text';
+  new_sector_one_text.id = '_sector_one_text';
+
+
+  var new_sector_two = document.createElement('div');
+  new_sector_two.className = 'sector_two';
+
+  var new_sector_two_text = document.createElement('span');
+  new_sector_two_text.className = 'sector_two_text';
+  new_sector_two_text.id = '_sector_two_text';
+
+
+  var new_sector_three = document.createElement('div');
+  new_sector_three.className = 'sector_three';
+
+  var new_sector_three_text = document.createElement('span');
+  new_sector_three_text.className = 'sector_three_text';
+  new_sector_three_text.id = '_sector_three_text';
+
+
+  var new_lap_time = document.createElement('div');
+  new_lap_time.className = 'lap_time';
+
+  var new_lap_time_text = document.createElement('span');
+  new_lap_time_text.className = 'lap_time_text';
+  new_lap_time_text.id = '_lap_time_text';
+
+
+  // Append from the most nested element upwards. Starting with adding spans to divs and so forth
+  new_lap_number.appendChild(new_lap_number_text);
+  new_sector_one.appendChild(new_sector_one_text);
+  new_sector_two.appendChild(new_sector_two_text);
+  new_sector_three.appendChild(new_sector_three_text);
+  new_lap_time.appendChild(new_lap_time_text);
+
+  // Now append upwards one step
+
+  new_lap_data.appendChild(new_lap_number);
+  new_lap_data.appendChild(new_sector_one);
+  new_lap_data.appendChild(new_sector_two);
+  new_lap_data.appendChild(new_sector_three);
+  new_lap_data.appendChild(new_lap_time);
+
+  // Now append to the top
+  new_lap_row.appenchChild(new_lap_data);
+
+  // Finally append new lap row to the time chart grid
+  document.getElementById('time_chart_grid').appendChild(new_lap_row);
+}
 
 
 // Function to convert the time we are given in the UDP packets in seconds to a standard time format
@@ -90,7 +182,7 @@ ws.onmessage = function(event) {
   switch (data.M_header.M_packetId) {
     // If the data inbound is the lap data packet, grab the amount of total laps
     case 2:
-      if (data.M_lapData[data.M_header.M_playerCarIndex].M_currentLapNum > current_lap) {
+      if (data.M_currentLapNum > current_lap) {
 
         // Check if lap is fastest lap and at same time check for slowest lap
         //
@@ -151,11 +243,14 @@ ws.onmessage = function(event) {
         }
 
         // Now set the current lap to the new lap we are starting
-        current_lap = data.M_lapData[data.M_header.M_playerCarIndex].M_currentLapNum;
-        // Create the string that is the html for the new lap to be added to our time chart
-        var new_time_entry = new_time_entry_html_part_one + 'lap_' + current_lap.toString() + new_time_entry_html_part_two + current_lap.toString() + new_time_entry_html_part_three + current_lap.toString() + new_time_entry_html_part_four + new_time_entry_sector_one + new_time_entry_html_part_five + current_lap.toString() + new_time_entry_html_part_six + new_time_entry_sector_two + new_time_entry_html_part_seven + current_lap.toString() + new_time_entry_html_part_eight + new_time_entry_sector_three + new_time_entry_html_part_nine + current_lap.toString() + new_time_entry_html_part_ten + new_time_entry_lap_time + new_time_entry_html_part_eleven;
-        // Add the new laps html row into our time chart
-        document.getElementById('time_chart_grid').innerHTML += new_time_entry;
+        current_lap = data.M_currentLapNum;
+
+
+        // // Create the string that is the html for the new lap to be added to our time chart
+        // var new_time_entry = new_time_entry_html_part_one + 'lap_' + current_lap.toString() + new_time_entry_html_part_two + current_lap.toString() + new_time_entry_html_part_three + current_lap.toString() + new_time_entry_html_part_four + new_time_entry_sector_one + new_time_entry_html_part_five + current_lap.toString() + new_time_entry_html_part_six + new_time_entry_sector_two + new_time_entry_html_part_seven + current_lap.toString() + new_time_entry_html_part_eight + new_time_entry_sector_three + new_time_entry_html_part_nine + current_lap.toString() + new_time_entry_html_part_ten + new_time_entry_lap_time + new_time_entry_html_part_eleven;
+        // // Add the new laps html row into our time chart
+        // document.getElementById('time_chart_grid').innerHTML += new_time_entry;
+        add_time_row(current_lap.toString())
 
         // Get the elements for the new laps html elements representing the time values
         current_time_entry_sector_one = document.getElementById(current_lap.toString() + '_sector_one_text');
@@ -165,19 +260,19 @@ ws.onmessage = function(event) {
       }
 
       // Set the html elements for the current lap to the times sent over from our udp packets
-      current_time_entry_lap_time.innerHTML = intTime_to_timeTime(data.M_lapData[data.M_header.M_playerCarIndex].M_currentLapTime);
-      current_lap_time = data.M_lapData[data.M_header.M_playerCarIndex].M_currentLapTime;
+      current_time_entry_lap_time.innerHTML = intTime_to_timeTime(data.M_currentLapTime);
+      current_lap_time = data.M_currentLapTime;
       // Since there is no sector three time udp packet data, we can check what sector we are in, and if we are in sector three then
       // we subtract the two sector times from our overall current lap time to get the time for sector three
-      current_time_entry_sector_one.innerHTML = intTime_to_timeTime(data.M_lapData[data.M_header.M_playerCarIndex].M_sector1Time);
-      current_time_entry_sector_two.innerHTML = intTime_to_timeTime(data.M_lapData[data.M_header.M_playerCarIndex].M_sector2Time);
-      if (data.M_lapData[data.M_header.M_playerCarIndex].M_sector == 2) {
-        current_time_entry_sector_three.innerHTML = intTime_to_timeTime(data.M_lapData[data.M_header.M_playerCarIndex].M_currentLapTime - data.M_lapData[data.M_header.M_playerCarIndex].M_sector2Time - data.M_lapData[data.M_header.M_playerCarIndex].M_sector1Time);
+      current_time_entry_sector_one.innerHTML = intTime_to_timeTime(data.M_sector1Time);
+      current_time_entry_sector_two.innerHTML = intTime_to_timeTime(data.M_sector2Time);
+      if (data.M_sector == 2) {
+        current_time_entry_sector_three.innerHTML = intTime_to_timeTime(data.M_currentLapTime - data.M_sector2Time - data.M_sector1Time);
       }
 
       // Only check if we have pitted when we havent. Save the computer from checking if we have the status and setting the piting to 1 if we already have
       if (has_pitted == 0) {
-        if (data.M_lapData[data.M_header.M_playerCarIndex].M_pitStatus == 1 || data.M_lapData[data.M_header.M_playerCarIndex].M_pitStatus == 2) {
+        if (data.M_pitStatus == 1 || data.M_pitStatus == 2) {
           has_pitted = 1;
         }
       }
@@ -185,5 +280,57 @@ ws.onmessage = function(event) {
 
       // End of case thingy stuff stuff
       break;
+
+      // If we get time catchup data
+    case 33:
+
+      catchup_fast_lap_time = data.Lap_time[0];
+      catchup_fast_lap_number = data.Lap_num[0];
+      catchup_slow_lap_time = data.Lap_time[0];
+      catchup_slow_lap_number = data.Lap_num[0];
+
+      for (i = 0; i < (data.Lap_num).length; i++) {
+        current_catchup_lap = data.Lap_num[i];
+        add_time_row(current_catchup_lap.toString());
+
+        current_time_entry_sector_one = document.getElementById(current_catchup_lap.toString() + '_sector_one_text');
+        current_time_entry_sector_two = document.getElementById(current_catchup_lap.toString() + '_sector_two_text');
+        current_time_entry_sector_three = document.getElementById(current_catchup_lap.toString() + '_sector_three_text');
+        current_time_entry_lap_time = document.getElementById(current_catchup_lap.toString() + '_lap_time_text');
+
+        current_time_entry_lap_time.innerHTML = intTime_to_timeTime(data.Lap_time[i]);
+        current_time_entry_sector_one.innerHTML = intTime_to_timeTime(data.Sector1Time[i]);
+        current_time_entry_sector_two.innerHTML = intTime_to_timeTime(data.Sector2Time[i]);
+        current_time_entry_sector_three.innerHTML = intTime_to_timeTime(data.Sector3Time[i]);
+
+        if (data.PitStatus[i] == 1 || data.PitStatus[i] == 2) {
+          document.getElementById('lap_' + current_catchup_lap).classList.toggle('car_pitted');
+        }
+
+        if data.Lap_time[i] > catchup_slow_lap_time {
+          catchup_slow_lap_time = data.Lap_time[i];
+          catchup_slow_lap_number = data.Lap_num[i];
+        }
+
+        if data.Lap_time[i] < catchup_fast_lap_time {
+          catchup_fast_lap_time = data.Lap_time[i];
+          catchup_fast_lap_number = data.Lap_num[i];
+        }
+
+      }
+
+
+      fastest_lap_time = catchup_fast_lap_time;
+      fastest_lap_number = catchup_fast_lap_number;
+      // Now after setting the new fastest lap number, toggle that lap numbers color on
+      document.getElementById('lap_' + catchup_fast_lap_number).classList.toggle('fastest_lap');
+
+      slowest_lap_time = catchup_slow_lap_time;
+      slowest_lap_number = catchup_slow_lap_number;
+      document.getElementById('lap_' + catchup_slow_lap_number).classList.toggle('slowest_lap');
+
+      current_lap = i;
+
+
   }
 }
