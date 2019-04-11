@@ -10,6 +10,14 @@ body {
   margin-left: 0px;
 }
 
+.hide {
+  visibility: hidden;
+}
+
+.show {
+  visibility: visible;
+}
+
 .header {
   height: 4em;
   width: 100vw;
@@ -31,6 +39,7 @@ body {
   background-color: #254E58;
   line-height: 2em;
   padding-left: 2em;
+  padding-right: 2em;
 }
 
 .nav_item {
@@ -38,6 +47,14 @@ body {
   display: inline-block;
   margin-right: 2em;
   position: relative;
+}
+
+.nav_item_right {
+  height: 100%;
+  display: inline-block;
+  margin-left: 2em;
+  position: relative;
+  float: right;
 }
 
 .nav_item .centered {
@@ -67,6 +84,12 @@ body {
 /*  */
 
 /* select session popup */
+
+.save_session_alert {
+  height: 100%;
+  display: inline-block;
+  color: #8D8741;
+}
 
 /* The Modal (background) */
 
@@ -108,7 +131,7 @@ body {
 
 /* Modal Body */
 
-#popup_body {
+#save_popup_body #history_popup_body {
   /* padding: 2px 16px; */
   background-color: #254E58;
   padding-bottom: 2em;
@@ -134,6 +157,58 @@ body {
   background-color: #112D32;
 }
 
+.popup_mysql_progress {
+  display: none;
+  /* Hidden by default */
+  min-height: 2em;
+  width: 100%;
+  background-color: #112D32;
+}
+
+.popup_mysql_progress_content {
+  padding: 2px 16px;
+}
+
+.popup_progress_data_row {
+  height: 2em;
+  display: grid;
+  grid: 2em / calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 7);
+}
+
+.popup_progress_title {
+  line-height: 2em;
+}
+
+.popup_progress_data_right {
+  display: inline-block;
+  float: right;
+}
+
+.popup_progress_data_right .span {
+  display: flex;
+}
+
+.popup_progress_data_right :nth-child(1) {
+  order: 1;
+}
+
+.popup_progress_data_right :nth-child(2) {
+  order: 2;
+}
+
+.popup_progress_data_right :nth-child(3) {
+  order: 3;
+}
+
+/* .popup_mysql_progress_content div {
+  line-height: 2em;
+} */
+
+.popup_progress_current, .popup_progress_slash, .popup_progress_amount {
+  float: right;
+  display: inline-flex;
+}
+
 /* Modal Content */
 
 .popup_content {
@@ -150,7 +225,8 @@ body {
   width: 40%;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
   animation-name: animatetop;
-  animation-duration: 0.4s
+  animation-duration: 0.4s;
+  padding-bottom: 1.5em;
 }
 
 /* Add Animation */

@@ -71,7 +71,7 @@ type Save_to_database_status struct {
 // 	Data []int
 // }
 
-type CatchUp_struct struct {
+type CatchUp_dashboard_struct struct {
 	M_header PacketHeader // Header
 
 	RaceSpeed_data           []int
@@ -79,4 +79,15 @@ type CatchUp_struct struct {
 	GearChanges_data         []int
 	ThrottleApplication_data []int
 	BrakeApplication_data    []int
+}
+
+type CatchUp_time_struct struct {
+	M_header PacketHeader // Header
+
+	Lap_num     []int
+	Lap_time    []float64
+	Sector1Time []float64
+	Sector2Time []float64
+	Sector3Time []float64
+	PitStatus   []int
 }

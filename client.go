@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"reflect"
+	"strconv"
 	"time"
 	// "strconv"
 	// "bytes"
@@ -93,6 +95,61 @@ func (c *Client) catchUp(clientType string) {
 	// Defer the closing of the redis connection until we return at the end of catchUp
 	defer redis_conn.Close()
 
+	// Get the Session_UIDs of the sessions we have stored in our redis database
+	session_UIDs, err := redis_conn.Do("SMEMBERS", "session_UIDs")
+	if err != nil {
+		log.Println("Getting session_UIDs from redis database failed:", err)
+	}
+
+	// Get the session UIDS and add them to our Save_to_database_alert struct to be sent over the websocket
+	// fmt.Print("session_UIDs:")
+	redis_sessions := []structs.Session{}
+	session_uids := reflect.ValueOf(session_UIDs)
+	for i := 0; i < session_uids.Len(); i += 1 {
+		uid, _ := redis.Uint64(session_uids.Index(i).Interface(), nil)
+
+		uid_string := strconv.FormatUint(uid, 10)
+
+		session_start_time, err := (redis_conn.Do("GET", uid_string+":session_start_time"))
+		if err != nil {
+			log.Println("Getting session_start_time from redis database failed:", err)
+		}
+
+		session_end_time, err := (redis_conn.Do("GET", uid_string+":session_end_time"))
+		if err != nil {
+			log.Println("Getting session_end_time from redis database failed:", err)
+		}
+
+		err = json.Unmarshal(session_start_time.([]byte), &Session_start)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		err = json.Unmarshal(session_end_time.([]byte), &Session_end)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		redis_sessions = append(redis_sessions, structs.Session{Session_UID: uid_string, Session_start_time: Session_start.Session_start_time, Session_end_time: Session_end.Session_end_time})
+	}
+
+	// Send the Udp_data struct containing the packet_id and the packet itself over the hub.bradcast channel to
+	// be broadcasted to all connected clients
+
+	Save_to_database_alert := structs.Save_to_database_alerts{
+		M_header: structs.PacketHeader{
+			M_packetId: 30,
+		},
+		Num_of_sessions: session_uids.Len(),
+		Sessions:        redis_sessions,
+	}
+
+	// Marshal our message into json so we can send it over the websockets
+	Save_to_database_alert_marshaled, err := json.Marshal(Save_to_database_alert)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	switch clientType {
 	case "dashboard":
 		// We only want data for the graphs since the second we connect this client to the hub it will receive data for everything else
@@ -140,6 +197,12 @@ func (c *Client) catchUp(clientType string) {
 
 		// Write our JSON formatted F1 UDP packet struct to our websocket
 		if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+			log.Println("", c.conn.RemoteAddr(), " ", "error with writing dashboard catchup to dashboard websocket")
+			return
+		}
+
+		// Write our redis stored sessions not saved to mysql to our websocket
+		if err := c.conn.WriteMessage(websocket.TextMessage, Save_to_database_alert_marshaled); err != nil {
 			log.Println("", c.conn.RemoteAddr(), " ", "error with writing dashboard catchup to dashboard websocket")
 			return
 		}
@@ -200,6 +263,12 @@ func (c *Client) catchUp(clientType string) {
 
 		}
 
+		// Write our redis stored sessions not saved to mysql to our websocket
+		if err := c.conn.WriteMessage(websocket.TextMessage, Save_to_database_alert_marshaled); err != nil {
+			log.Println("", c.conn.RemoteAddr(), " ", "error with writing dashboard catchup to dashboard websocket")
+			return
+		}
+
 	case "time":
 
 		log.Println("Catchup time")
@@ -256,6 +325,12 @@ func (c *Client) catchUp(clientType string) {
 		// Write our JSON formatted F1 UDP packet struct to our websocket
 		if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
 			log.Println("", c.conn.RemoteAddr(), " ", "error with writing time catchup to time websocket")
+			return
+		}
+
+		// Write our redis stored sessions not saved to mysql to our websocket
+		if err := c.conn.WriteMessage(websocket.TextMessage, Save_to_database_alert_marshaled); err != nil {
+			log.Println("", c.conn.RemoteAddr(), " ", "error with writing dashboard catchup to dashboard websocket")
 			return
 		}
 
@@ -663,6 +738,7 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 		// new goroutines.
 		client.catchUp("time")
 		go client.writeTime()
+		go client.readFromClients()
 
 	default:
 		log.Println("ws client type is invalid, type:", conn_type)
