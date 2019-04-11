@@ -64,10 +64,147 @@ body {
   /* line-height: 2em; */
 }
 
+/*  */
+
+/* select session popup */
+
+/* The Modal (background) */
+
+/*  */
+
+.popup {
+  display: none;
+  /* Hidden by default */
+  position: fixed;
+  /* Stay in place */
+  z-index: 1;
+  /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%;
+  /* Full width */
+  height: 100%;
+  /* Full height */
+  overflow: auto;
+  /* Enable scroll if needed */
+  background-color: rgb(0, 0, 0);
+  /* Fallback color */
+  background-color: rgba(0, 0, 0, 0.6);
+  /* Black w/ opacity */
+}
+
+/* Modal Header */
+
+.popup_header {
+  padding: 2px 16px;
+  height: 2em;
+  background-color: #8D8741;
+  color: white;
+}
+
+.popup_header_text {
+  line-height: 2em;
+}
+
+/* Modal Body */
+
+#popup_body {
+  /* padding: 2px 16px; */
+  background-color: #254E58;
+  padding-bottom: 2em;
+  padding: 2px 16px;
+}
+
+#popup_table_titles {
+  padding: 0px 16px;
+  line-height: 2em;
+  display: grid;
+  grid: 2em / calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 3) calc(100% / 10);
+}
+
+.popup_table_grid {
+  border-radius: 6px;
+  padding: 2px 16px;
+  line-height: 3em;
+  display: grid;
+  grid: 3em / calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 3) calc(100% / 10);
+}
+
+.popup_table_grid:hover {
+  background-color: #112D32;
+}
+
+/* Modal Content */
+
+.popup_content {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  /* position: relative; */
+  background-color: #254E58;
+  margin: auto;
+  padding: 0;
+  /* border: 1px solid #888; */
+  width: 40%;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  animation-name: animatetop;
+  animation-duration: 0.4s
+}
+
+/* Add Animation */
+
+@keyframes animatetop {
+  from {
+    top: 0px;
+    opacity: 0
+  }
+  to {
+    top: 25%;
+    opacity: 1
+  }
+}
+
+/* The Close Button */
+
+.close {
+  /* color: #aaa; */
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover, .close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/*  */
+
+/* end popup stuff */
+
+/*  */
+
 #page_title {
   margin-top: 1em;
   height: 2em;
   line-height: 2em;
+}
+
+.page_title_left_class {
+  display: inline-block;
+}
+
+#select_session_nav_button {
+  border-radius: 6px;
+  background-color: #254E58;
+  padding-left: 1.5em;
+  padding-right: 1.5em;
+  padding-top: 0.2em;
+  margin-left: 3em;
+  padding-bottom: 0.2em;
 }
 
 .element_container {

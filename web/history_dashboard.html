@@ -24,7 +24,7 @@
           <span class="centered">Live</span>
         </div>
       </div>
-      <div class="nav_item" id="history_nav_button">
+      <div class="nav_item" id="history_nav_button" onclick="location.href='http://localhost:8080/history';">
         <div class="header_svg_container">
           <svg class="header_svg" x="0px" y="0px" viewBox="0 0 128 135">
               <g>
@@ -88,11 +88,44 @@
     </div>
   </div>
 
+
+  <!-- The popup -->
+  <div id="select_from_database_popup" class="popup">
+
+    <!-- Modal content -->
+    <!-- Modal content -->
+    <div class="popup_content">
+      <div class="popup_header">
+        <span class="close">&times;</span>
+        <span class="popup_header_text">Select Session to Analyze</span>
+      </div>
+      <div id="popup_body">
+        <p>Select a session to analize from the saved sessions below</p>
+        <!-- <p>Some text in the popup Body</p>
+        <p>Some other text...</p> -->
+        <div id="popup_table_titles">
+          <div>Session UID</div>
+          <div>Date Started</div>
+          <div>Date Ended</div>
+          <div></div>
+        </div>
+
+      </div>
+    </div>
+
+
+  </div>
+
+
+
   <div class="element_container">
     <div class="" id="page_title">
       <div id="page_title_left">
-        <div id="page_title_text_span_container">
+        <div class="page_title_left_class" id="page_title_text_span_container">
           <span id="page_title_text">History</span>
+        </div>
+        <div class="page_title_left_class" id="select_session_container">
+          <span id="select_session_nav_button">Select Session</span>
         </div>
       </div>
       <div id="page_title_right"></div>

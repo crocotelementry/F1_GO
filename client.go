@@ -2,18 +2,20 @@ package main
 
 import (
 	// "bytes"
+	"database/sql"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
-	"fmt"
-	"encoding/json"
 	// "strconv"
-  // "bytes"
+	// "bytes"
 	// "encoding/binary"
 
-	"github.com/gorilla/websocket"
+	// "github.com/go-sql-driver/mysql"
 	"github.com/crocotelementry/F1_GO/structs"
 	"github.com/gomodule/redigo/redis"
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -31,11 +33,11 @@ const (
 )
 
 var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
-	message_json structs.Save_to_database_websocket_recive
+	newline                  = []byte{'\n'}
+	space                    = []byte{' '}
+	message_json             structs.Save_to_database_websocket_recive
 	CatchUp_dashboard_struct structs.CatchUp_dashboard_struct
-	CatchUp_time_struct structs.CatchUp_time_struct
+	CatchUp_time_struct      structs.CatchUp_time_struct
 )
 
 var upgrader = websocket.Upgrader{
@@ -54,24 +56,24 @@ var upgrader = websocket.Upgrader{
 type Client struct {
 	hub *Hub
 
-  // What type of client is it
-  // Live, Time, History
-  conn_type string
+	// What type of client is it
+	// Live, Time, History
+	conn_type string
 
 	// The websocket connection.
 	conn *websocket.Conn
 
 	// Buffered channel of outbound messages.
 	// send chan *Udp_data
-	Motion_packet_send chan structs.PacketMotionData
-	Session_packet_send chan structs.PacketSessionData
-	Lap_packet_send chan structs.PacketLapData
-	Event_packet_send chan structs.PacketEventData
+	Motion_packet_send      chan structs.PacketMotionData
+	Session_packet_send     chan structs.PacketSessionData
+	Lap_packet_send         chan structs.PacketLapData
+	Event_packet_send       chan structs.PacketEventData
 	Participant_packet_send chan structs.PacketParticipantsData
-	Car_setup_packet_send chan structs.PacketCarSetupData
-	Telemetry_packet_send chan structs.PacketCarTelemetryData
-	Car_status_packet_send chan structs.PacketCarStatusData
-	Save_to_database_alert chan structs.Save_to_database_alerts
+	Car_setup_packet_send   chan structs.PacketCarSetupData
+	Telemetry_packet_send   chan structs.PacketCarTelemetryData
+	Car_status_packet_send  chan structs.PacketCarStatusData
+	Save_to_database_alert  chan structs.Save_to_database_alerts
 	Save_to_database_status chan structs.Save_to_database_status
 }
 
@@ -124,13 +126,11 @@ func (c *Client) catchUp(clientType string) {
 		raceSpeed_data := structs.CatchUp_dashboard_struct{M_header: structs.PacketHeader{
 			M_packetId: 32,
 		},
-		RaceSpeed_data: raceSpeed,
-		EngineRevs_data: engineRevs,
-		GearChanges_data: gearChanges,
-		ThrottleApplication_data: throttleApplication,
-		BrakeApplication_data: brakeApplication,}
-
-
+			RaceSpeed_data:           raceSpeed,
+			EngineRevs_data:          engineRevs,
+			GearChanges_data:         gearChanges,
+			ThrottleApplication_data: throttleApplication,
+			BrakeApplication_data:    brakeApplication}
 
 		// Marshal our message into json so we can send it over the websockets
 		json_message_marshaled, err := json.Marshal(raceSpeed_data)
@@ -144,12 +144,61 @@ func (c *Client) catchUp(clientType string) {
 			return
 		}
 
-
-		// fmt.Println("raceSpeed", raceSpeed_data)
-
 	case "history":
 		// we only want redis stored sessions
+		db, err := sql.Open("mysql", saved_mysql_password)
+		if err != nil {
+			log.Println("mysql: could not get a connection: %v", err)
+		}
 
+		if _, err := db.Exec("USE F1_GO_MYSQL"); err != nil {
+			log.Println("mysql: error with statement 'USE F1_GO_MYSQL'", err)
+		}
+
+		// Defer the closing of the mysql database connection until we are finished with add_to_longterm_storage and return
+		defer db.Close()
+
+		if err := db.Ping(); err != nil {
+			db.Close()
+			log.Println("mysql: could not establish a good connection: %v", err)
+		} else {
+			rows, err := db.Query("SELECT session_uid, session_start, session_end FROM race_event_directory")
+			// checkErr(err)
+
+			redis_sessions := []structs.Session{}
+			num_of_sessions := 0
+			for rows.Next() {
+				var uid_string string
+				var Session_start time.Time
+				var Session_end time.Time
+				err = rows.Scan(&uid_string, &Session_start, &Session_end)
+
+				redis_sessions = append(redis_sessions, structs.Session{Session_UID: uid_string, Session_start_time: Session_start, Session_end_time: Session_end})
+
+				num_of_sessions += 1
+			}
+
+			select_from_database_alert := structs.Save_to_database_alerts{
+				M_header: structs.PacketHeader{
+					M_packetId: 34,
+				},
+				Num_of_sessions: num_of_sessions,
+				Sessions:        redis_sessions,
+			}
+
+			// Marshal our message into json so we can send it over the websockets
+			json_message_marshaled, err := json.Marshal(select_from_database_alert)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			// Write our JSON formatted F1 UDP packet struct to our websocket
+			if err := c.conn.WriteMessage(websocket.TextMessage, json_message_marshaled); err != nil {
+				log.Println("", c.conn.RemoteAddr(), " ", "error with writing dashboard catchup to dashboard websocket")
+				return
+			}
+
+		}
 
 	case "time":
 
@@ -189,12 +238,12 @@ func (c *Client) catchUp(clientType string) {
 		lapTime_data := structs.CatchUp_time_struct{M_header: structs.PacketHeader{
 			M_packetId: 33,
 		},
-		Lap_num: catchup_lap_num,
-		Lap_time: catchup_lap_time,
-		Sector1Time: catchup_sector1Time,
-		Sector2Time: catchup_sector2Time,
-		Sector3Time: catchup_sector3Time,
-		PitStatus: catchup_pitStatus,}
+			Lap_num:     catchup_lap_num,
+			Lap_time:    catchup_lap_time,
+			Sector1Time: catchup_sector1Time,
+			Sector2Time: catchup_sector2Time,
+			Sector3Time: catchup_sector3Time,
+			PitStatus:   catchup_pitStatus}
 
 		log.Println("CatchUp_time_struct", lapTime_data)
 
@@ -211,8 +260,9 @@ func (c *Client) catchUp(clientType string) {
 		}
 
 	}
-}
 
+	return
+}
 
 // readFromClients reads messages from the websocket connection to the hub.
 //
@@ -248,7 +298,6 @@ func (c *Client) readFromClients() {
 		}
 	}
 }
-
 
 // writeDashboard pumps messages from the hub to the websocket connection.
 //
@@ -379,8 +428,7 @@ func (c *Client) writeDashboard() {
 				return
 			}
 
-
-		case <-ticker.C:		// If our ticker has reached its time
+		case <-ticker.C: // If our ticker has reached its time
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 
 			// If our client has disconected from the websocket on thier end, close the client and its connection by returning and executing our defer statement
@@ -391,7 +439,6 @@ func (c *Client) writeDashboard() {
 		}
 	}
 }
-
 
 // writeHistory pumps messages from the websocket connection to the hub.
 //
@@ -419,7 +466,7 @@ func (c *Client) writeHistory() {
 		// }
 		// message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 
-    // Fetch that data it wants from database and send it over the ws
+		// Fetch that data it wants from database and send it over the ws
 		select {
 		case message, ok := <-c.Save_to_database_alert:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
@@ -461,7 +508,7 @@ func (c *Client) writeHistory() {
 				return
 			}
 
-		case <-ticker.C:		// If our ticker has reached its time
+		case <-ticker.C: // If our ticker has reached its time
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 
 			// If our client has disconected from the websocket on thier end, close the client and its connection by returning and executing our defer statement
@@ -472,8 +519,6 @@ func (c *Client) writeHistory() {
 		}
 	}
 }
-
-
 
 // writeTime pumps messages from the hub to the websocket connection.
 //
@@ -547,8 +592,7 @@ func (c *Client) writeTime() {
 				return
 			}
 
-
-		case <-ticker.C:		// If our ticker has reached its time
+		case <-ticker.C: // If our ticker has reached its time
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait)) // Add another 10 seconds to the SetWriteDeadline
 
 			// If our client has disconected from the websocket on thier end, close the client and its connection by returning and executing our defer statement
@@ -559,7 +603,6 @@ func (c *Client) writeTime() {
 		}
 	}
 }
-
 
 // serveWs handles websocket requests from the peer.
 func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request) {
@@ -572,57 +615,57 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 	switch conn_type {
 	case "dashboard":
 		client := &Client{
-			hub: hub,
-			conn_type: conn_type,
-			conn: conn,
-			Session_packet_send: make(chan structs.PacketSessionData),
-			Lap_packet_send: make(chan structs.PacketLapData),
-			Telemetry_packet_send: make(chan structs.PacketCarTelemetryData),
-			Car_status_packet_send: make(chan structs.PacketCarStatusData),
-			Save_to_database_alert: make(chan structs.Save_to_database_alerts),
+			hub:                     hub,
+			conn_type:               conn_type,
+			conn:                    conn,
+			Session_packet_send:     make(chan structs.PacketSessionData),
+			Lap_packet_send:         make(chan structs.PacketLapData),
+			Telemetry_packet_send:   make(chan structs.PacketCarTelemetryData),
+			Car_status_packet_send:  make(chan structs.PacketCarStatusData),
+			Save_to_database_alert:  make(chan structs.Save_to_database_alerts),
 			Save_to_database_status: make(chan structs.Save_to_database_status),
 		}
 		client.hub.register <- client
 
 		// Allow collection of memory referenced by the caller by doing all work in
-  	// new goroutines.
+		// new goroutines.
 		client.catchUp("dashboard")
 		go client.writeDashboard()
 		go client.readFromClients()
 
 	case "history":
 		client := &Client{
-			hub: hub,
-			conn_type: conn_type,
-			conn: conn,
-			Save_to_database_alert: make(chan structs.Save_to_database_alerts),
-			Save_to_database_status: make(chan structs.Save_to_database_status),
-		}
-		client.hub.register <- client
-
-    // Allow collection of memory referenced by the caller by doing all work in
-  	// new goroutines.
-		client.catchUp("history")
-    go client.writeHistory()
-
-	case "time":
-		client := &Client{
-			hub: hub,
-			conn_type: conn_type,
-			conn: conn,
-			Lap_packet_send: make(chan structs.PacketLapData),
-			Save_to_database_alert: make(chan structs.Save_to_database_alerts),
+			hub:                     hub,
+			conn_type:               conn_type,
+			conn:                    conn,
+			Save_to_database_alert:  make(chan structs.Save_to_database_alerts),
 			Save_to_database_status: make(chan structs.Save_to_database_status),
 		}
 		client.hub.register <- client
 
 		// Allow collection of memory referenced by the caller by doing all work in
-  	// new goroutines.
+		// new goroutines.
+		client.catchUp("history")
+		go client.writeHistory()
+
+	case "time":
+		client := &Client{
+			hub:                     hub,
+			conn_type:               conn_type,
+			conn:                    conn,
+			Lap_packet_send:         make(chan structs.PacketLapData),
+			Save_to_database_alert:  make(chan structs.Save_to_database_alerts),
+			Save_to_database_status: make(chan structs.Save_to_database_status),
+		}
+		client.hub.register <- client
+
+		// Allow collection of memory referenced by the caller by doing all work in
+		// new goroutines.
 		client.catchUp("time")
 		go client.writeTime()
 
 	default:
 		log.Println("ws client type is invalid, type:", conn_type)
-    return
+		return
 	}
 }
