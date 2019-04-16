@@ -146,6 +146,7 @@ body {
 }
 
 .popup_table_grid {
+  cursor: default;
   border-radius: 6px;
   padding: 2px 16px;
   line-height: 3em;

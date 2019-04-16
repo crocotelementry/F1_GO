@@ -54,9 +54,72 @@ window.onclick = function(event) {
 }
 
 
+function save_to_database(uid) {
+  var uid_json = '{"type":"add", "uid":' + uid + '}';
+
+  var status_body = document.getElementById(uid);
+
+  var status_content = document.createElement('div');
+  status_content.className = "popup_mysql_progress_content";
+
+
+  // motion packet
+  var mp_div = document.createElement('div');
+  mp_div.className = "popup_progress_data_row";
+  var popup_progress_data_left = document.createElement('div');
+  popup_progress_data_left.id = "popup_progress_data_title";
+  popup_progress_canvas_container = document.createElement('div');
+  popup_progress_canvas_container.id = "popup_progress_canvas_container";
+  // add title to left
+  popup_progress_title = document.createElement('span');
+  popup_progress_title.className = "popup_progress_title";
+  // add canvas to right
+  popup_progress_canvas = document.createElement('canvas');
+  popup_progress_canvas.id = "popup_progress_canvas";
+
+
+
+  popup_progress_data_left.appendChild(popup_progress_title);
+  popup_progress_canvas_container.appendChild(popup_progress_canvas);
+  mp_div.appendChild(popup_progress_data_left);
+  mp_div.appendChild(popup_progress_canvas_container);
+
+
+  status_content.appendChild(mp_div);
+
+  status_body.appendChild(status_content);
+
+  status_body.style.display = "block";
+
+
+  ws.send(uid_json);
+}
+
+function get_session_from_mysql(session_uid) {
+  var uid_json = '{"type":"get_history", "uid":' + session_uid + '}';
+  ws.send(uid_json);
+}
+
+
 function add_session_row(session_uid, session_start, session_end, popup_type) {
   var new_div = document.createElement('div');
   new_div.className = 'popup_table_grid';
+
+
+  switch (popup_type) {
+    case "save_popup_body":
+      new_div.onclick = function() {
+        save_to_database(session_uid);
+      }
+      break;
+
+    case "history_popup_body":
+      new_div.onclick = function() {
+        get_session_from_mysql(session_uid);
+      }
+      break;
+  }
+
 
   var uid = document.createElement('div');
   uid.innerHTML = session_uid
@@ -93,11 +156,14 @@ ws.onmessage = function(event) {
       // console.log("Num of session", data.Num_of_sessions);
       // console.log("Session 1 data:", data.Sessions[0].Session_UID, data.Sessions[0].Session_start_time, data.Sessions[0].Session_end_time);
       save_session_alert_number.innerHTML = data.Num_of_sessions;
-      save_session_alert.classList.toggle('show');
-      save_session_alert.classList.toggle('hide');
+
+      if (save_session_alert.classList.contains("hide")) {
+        save_session_alert.classList.toggle('show');
+        save_session_alert.classList.toggle('hide');
+      }
 
       for (z = 0; z < data.Num_of_sessions; z++) {
-        add_session_row(data.Sessions[z].Session_UID, data.Sessions[z].Session_start_time, data.Sessions[z].Session_end_time)
+        add_session_row(data.Sessions[z].Session_UID, data.Sessions[z].Session_start_time, data.Sessions[z].Session_end_time, "save_popup_body")
       }
 
       break;

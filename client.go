@@ -368,6 +368,9 @@ func (c *Client) readFromClients() {
 		case "add":
 			log.Println("", c.conn.RemoteAddr(), " ", "Session chosen for long term storage in mysql with UID:", message_json.Uid)
 			go getRedisDataForMysql(c.hub, message_json.Uid)
+			// Add in something that sends to all clients to delete this session since its already being added!!! Mucho importante
+		case "get_history":
+			log.Println("", c.conn.RemoteAddr(), " ", "Session chosen to get from MySQL with UID:", message_json.Uid)
 		default:
 			log.Println("Incorrect statement recieved from websocket client:", message_json.Type)
 		}
@@ -722,6 +725,7 @@ func serve_ws(conn_type string, hub *Hub, w http.ResponseWriter, r *http.Request
 		// new goroutines.
 		client.catchUp("history")
 		go client.writeHistory()
+		go client.readFromClients()
 
 	case "time":
 		client := &Client{
