@@ -10,6 +10,14 @@ body {
   margin-left: 0px;
 }
 
+.hide {
+  visibility: hidden;
+}
+
+.show {
+  visibility: visible;
+}
+
 .header {
   height: 4em;
   width: 100vw;
@@ -31,6 +39,7 @@ body {
   background-color: #254E58;
   line-height: 2em;
   padding-left: 2em;
+  padding-right: 2em;
 }
 
 .nav_item {
@@ -38,6 +47,14 @@ body {
   display: inline-block;
   margin-right: 2em;
   position: relative;
+}
+
+.nav_item_right {
+  height: 100%;
+  display: inline-block;
+  margin-left: 2em;
+  position: relative;
+  float: right;
 }
 
 .nav_item .centered {
@@ -62,6 +79,170 @@ body {
   height: 100%;
   display: inline-block;
   /* line-height: 2em; */
+}
+
+.save_session_alert {
+  height: 100%;
+  display: inline-block;
+  color: #8D8741;
+}
+
+/* The Modal (background) */
+
+.popup {
+  display: none;
+  /* Hidden by default */
+  position: fixed;
+  /* Stay in place */
+  z-index: 1;
+  /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%;
+  /* Full width */
+  height: 100%;
+  /* Full height */
+  overflow: auto;
+  /* Enable scroll if needed */
+  background-color: rgb(0, 0, 0);
+  /* Fallback color */
+  background-color: rgba(0, 0, 0, 0.6);
+  /* Black w/ opacity */
+}
+
+/* Modal Header */
+
+.popup_header {
+  padding: 2px 16px;
+  height: 2em;
+  background-color: #8D8741;
+  color: white;
+}
+
+.popup_header_text {
+  line-height: 2em;
+}
+
+/* Modal Body */
+
+#popup_body {
+  /* padding: 2px 16px; */
+  background-color: #254E58;
+  padding-bottom: 2em;
+}
+
+#popup_table_titles {
+  padding: 2px 16px;
+  line-height: 2em;
+  display: grid;
+  grid: 2em / calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 3) calc(100% / 10);
+}
+
+.popup_mysql_progress {
+  display: none;
+  /* Hidden by default */
+  min-height: 2em;
+  width: 100%;
+  background-color: #112D32;
+}
+
+.popup_mysql_progress_content {
+  padding: 2px 16px;
+}
+
+.popup_progress_data_row {
+  height: 2em;
+  display: grid;
+  grid: 2em / calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 7);
+}
+
+.popup_progress_title {
+  line-height: 2em;
+}
+
+.popup_progress_data_right {
+  display: inline-block;
+  float: right;
+}
+
+.popup_progress_data_right .span {
+  display: flex;
+}
+
+.popup_progress_data_right :nth-child(1) {
+  order: 1;
+}
+
+.popup_progress_data_right :nth-child(2) {
+  order: 2;
+}
+
+.popup_progress_data_right :nth-child(3) {
+  order: 3;
+}
+
+/* .popup_mysql_progress_content div {
+  line-height: 2em;
+} */
+
+.popup_progress_current, .popup_progress_slash, .popup_progress_amount {
+  float: right;
+  display: inline-flex;
+}
+
+.popup_table_grid {
+  padding: 2px 16px;
+  line-height: 3em;
+  display: grid;
+  grid: 3em / calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 3) calc(calc(100% / 10) * 3) calc(100% / 10);
+}
+
+/* Modal Content */
+
+.popup_content {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  /* position: relative; */
+  background-color: #fefefe;
+  margin: auto;
+  padding: 0;
+  /* border: 1px solid #888; */
+  width: 40%;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  animation-name: animatetop;
+  animation-duration: 0.4s;
+  padding-bottom: 1.5em;
+}
+
+/* Add Animation */
+
+@keyframes animatetop {
+  from {
+    top: 0px;
+    opacity: 0
+  }
+  to {
+    top: 25%;
+    opacity: 1
+  }
+}
+
+/* The Close Button */
+
+.close {
+  /* color: #aaa; */
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover, .close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 #page_title {

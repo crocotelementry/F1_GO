@@ -24,7 +24,7 @@
           <span class="centered">Live</span>
         </div>
       </div>
-      <div class="nav_item" id="history_nav_button">
+      <div class="nav_item" id="history_nav_button" onclick="location.href='http://localhost:8080/history';">
         <div class="header_svg_container">
           <svg class="header_svg" x="0px" y="0px" viewBox="0 0 128 135">
               <g>
@@ -85,14 +85,111 @@
           <span class="centered">Times</span>
         </div>
       </div>
+
+      <div class="nav_item_right" id="save_session_nav_button">
+        <!-- <div class="header_span_container" onclick="location.href='http://localhost:8080';">
+          <span class="centered">Save Session</span>
+        </div> -->
+        <div id="save_session_alert" class="save_session_alert hide">
+          <span id="save_session_alert_number" class="centered">0</span>
+        </div>
+
+        <div class="header_svg_container">
+          <svg class="header_svg" x="0px" y="0px" viewBox="0 0 24 30">
+            <g>
+              <g>
+                <g>
+                  <path d="M22.5,24h-21C0.673,24,0,23.327,0,22.5v-21C0,0.673,0.673,0,1.5,0h18c0.133,0,0.26,0.053,0.354,0.146l4,4     C23.947,4.24,24,4.367,24,4.5v18C24,23.327,23.327,24,22.5,24z M1.5,1C1.225,1,1,1.224,1,1.5v21C1,22.776,1.225,23,1.5,23h21     c0.275,0,0.5-0.224,0.5-0.5V4.707L19.293,1H1.5z"/>
+                </g>
+                <g>
+                  <path d="M16.5,8h-9C6.673,8,6,7.327,6,6.5v-6C6,0.224,6.224,0,6.5,0h11C17.776,0,18,0.224,18,0.5v6C18,7.327,17.327,8,16.5,8z      M7,1v5.5C7,6.776,7.225,7,7.5,7h9C16.775,7,17,6.776,17,6.5V1H7z"/>
+                </g>
+                <g>
+                  <path d="M20.5,24h-17C3.224,24,3,23.776,3,23.5v-12C3,10.122,4.121,9,5.5,9h13c1.379,0,2.5,1.122,2.5,2.5v12     C21,23.776,20.776,24,20.5,24z M4,23h16V11.5c0-0.827-0.673-1.5-1.5-1.5h-13C4.673,10,4,10.673,4,11.5V23z"/>
+                </g>
+                <g>
+                  <path d="M15.5,6h-2C13.224,6,13,5.776,13,5.5v-3C13,2.224,13.224,2,13.5,2h2C15.776,2,16,2.224,16,2.5v3     C16,5.776,15.776,6,15.5,6z M14,5h1V3h-1V5z"/>
+                </g>
+                <g>
+                  <path d="M17.5,14h-11C6.224,14,6,13.776,6,13.5S6.224,13,6.5,13h11c0.276,0,0.5,0.224,0.5,0.5S17.776,14,17.5,14z"/>
+                </g>
+                <g>
+                  <path d="M17.5,17h-11C6.224,17,6,16.776,6,16.5S6.224,16,6.5,16h11c0.276,0,0.5,0.224,0.5,0.5S17.776,17,17.5,17z"/>
+                </g>
+                <g>
+                  <path d="M17.5,20h-11C6.224,20,6,19.776,6,19.5S6.224,19,6.5,19h11c0.276,0,0.5,0.224,0.5,0.5S17.776,20,17.5,20z"/>
+                </g>
+              </g>
+            </g>
+          </svg>
+        </div>
+      </div>
+
     </div>
   </div>
+
+
+  <!-- The history popup -->
+  <div id="select_from_database_popup" class="popup">
+
+    <!-- Modal content -->
+    <!-- Modal content -->
+    <div class="popup_content">
+      <div class="popup_header">
+        <span id="history_close" class="close">&times;</span>
+        <span class="popup_header_text">Select Session to Analyze</span>
+      </div>
+      <div id="history_popup_body">
+        <p>Select a session to analize from the saved sessions below</p>
+        <!-- <p>Some text in the popup Body</p>
+        <p>Some other text...</p> -->
+        <div id="popup_table_titles">
+          <div>Session UID</div>
+          <div>Date Started</div>
+          <div>Date Ended</div>
+          <div></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- The save popup -->
+  <div id="save_to_database_popup" class="popup">
+
+    <!-- Modal content -->
+    <!-- Modal content -->
+    <div class="popup_content">
+      <div class="popup_header">
+        <span id="save_close" class="close">&times;</span>
+        <span class="popup_header_text">Save Sessions to Storage</span>
+      </div>
+      <div id="save_popup_body">
+        <!-- <p>Some text in the popup Body</p>
+        <p>Some other text...</p> -->
+        <div id="popup_table_titles">
+          <div>Session UID</div>
+          <div>Date Started</div>
+          <div>Date Ended</div>
+          <div></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+
 
   <div class="element_container">
     <div class="" id="page_title">
       <div id="page_title_left">
-        <div id="page_title_text_span_container">
+        <div class="page_title_left_class" id="page_title_text_span_container">
           <span id="page_title_text">History</span>
+        </div>
+        <div class="page_title_left_class" id="select_session_container">
+          <span id="select_session_nav_button">Select Session</span>
         </div>
       </div>
       <div id="page_title_right"></div>
@@ -101,6 +198,6 @@
 
 
 </body>
-<script src="/web/js/history_dashboard.js"></script>
+<script src="/web/js/redis_history_dashboard.js"></script>
 
 </html>
