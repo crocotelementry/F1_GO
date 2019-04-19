@@ -371,6 +371,7 @@ func (c *Client) readFromClients() {
 			// Add in something that sends to all clients to delete this session since its already being added!!! Mucho importante
 		case "get_history":
 			log.Println("", c.conn.RemoteAddr(), " ", "Session chosen to get from MySQL with UID:", message_json.Uid)
+			go c.analyzeHistoryFromMysql(message_json.Uid)
 		default:
 			log.Println("Incorrect statement recieved from websocket client:", message_json.Type)
 		}
