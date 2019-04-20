@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -12,12 +13,14 @@ import (
 	"github.com/crocotelementry/F1_GO/structs"
 	"github.com/fatih/color"
 	"github.com/go-sql-driver/mysql"
+	"github.com/gorilla/websocket"
 )
 
 var (
 	saved_mysql_password     = ""
 	mysql_login_string_front = "root:"
-	mysql_login_string_back  = "@tcp(127.0.0.1:3306)/"
+	mysql_login_string_back  = "@tcp(127.0.0.1:3306)/F1_GO_MYSQL"
+	mysql_login_param        = "?multiStatements=true"
 )
 
 var createDB = []string{
@@ -1125,8 +1128,268 @@ func add_to_longterm_storage() {
 
 			}
 		}
+
+		log.Println("Finished added session to longterm mysql storage")
 	}
 
 	return
+
+}
+
+func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
+	db, err := sql.Open("mysql", saved_mysql_password)
+	if err != nil {
+		log.Println("mysql: could not get a connection: %v", err)
+	}
+
+	if _, err := db.Exec("USE F1_GO_MYSQL"); err != nil {
+		log.Println("mysql: error with statement 'USE F1_GO_MYSQL'", err)
+	}
+
+	// Defer the closing of the mysql database connection until we are finished with add_to_longterm_storage and return
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		db.Close()
+		log.Println("mysql: could not establish a good connection: %v", err)
+		fmt.Println("Exiting...")
+		os.Exit(1)
+	} else {
+		var (
+			user_index int
+		)
+		err := db.QueryRow(`SELECT player_car_index from race_event_directory where session_uid = ?`, chosen_session_uid).Scan(&user_index)
+
+		switch {
+		case err == sql.ErrNoRows:
+			log.Printf("no session with uid %d\n", chosen_session_uid)
+		case err != nil:
+			log.Fatalf("query error: %v\n", err)
+		default:
+			log.Printf("User car index is %d\n", user_index)
+		}
+
+		query_history_motionData := `SELECT	frame_identifier, suspension_position_rl, suspension_position_rr, suspension_position_fl, suspension_position_fr, m_worldPositionX, m_worldPositionY,
+		m_worldPositionZ FROM motion_data INNER JOIN car_motion_data on motion_data.id = car_motion_data.motion_packet_id WHERE motion_data.session_uid =
+		? and car_motion_data.car_index = ?;`
+
+		query_history_sessionData := `SELECT m_totalLaps, m_trackId FROM session_data WHERE session_data.session_uid = ?;`
+
+		query_history_lapData := `SELECT frame_identifier, m_lastLapTime, m_currentLapTime, m_bestLapTime, m_sector1Time, m_sector2Time, m_sector FROM lap_data
+		INNER JOIN car_lap_data on lap_data.id = car_lap_data.lap_data_id WHERE lap_data.session_uid = ? and car_lap_data.car_index = ?;`
+
+		query_history_telemetryData := `SELECT frame_identifier, m_speed, m_throttle, m_brake, m_gear, m_engineRPM, m_brakesTemperature_rl, m_brakesTemperature_rr, m_brakesTemperature_fl,
+		m_brakesTemperature_fr, m_tyresSurfaceTemperature_rl, m_tyresSurfaceTemperature_rr, m_tyresSurfaceTemperature_fl, m_tyresSurfaceTemperature_fr, m_tyresPressure_rl,
+		m_tyresPressure_rr, m_tyresPressure_fl, m_tyresPressure_fr FROM telemetry_data INNER JOIN car_telemetry_data on telemetry_data.id = car_telemetry_data.telemetry_data_id
+		where telemetry_data.session_uid = ? and car_telemetry_data.car_index = ?;`
+
+		query_history_statusData := `SELECT frame_identifier, m_maxRPM, m_idleRPM, m_maxGears, m_tyresWear_rl, m_tyresWear_rr, m_tyresWear_fl, m_tyresWear_fr,
+		m_tyresDamage_rl, m_tyresDamage_rr, m_tyresDamage_fl, m_tyresDamage_fr FROM status_data INNER JOIN car_status_data ON status_data.id = car_status_data.status_data_id
+		WHERE status_data.session_uid = ? and car_status_data.car_index = ?;`
+
+		motionData_rows, err := db.Query(query_history_motionData, chosen_session_uid, user_index)
+		if err != nil {
+			log.Println("motionData_rows", err)
+		}
+
+		sessionData_rows, err := db.Query(query_history_sessionData, chosen_session_uid)
+		if err != nil {
+			log.Println("sessionData_rows", err)
+		}
+
+		lapData_rows, err := db.Query(query_history_lapData, chosen_session_uid, user_index)
+		if err != nil {
+			log.Println("lapData_rows", err)
+		}
+
+		telemetryData_rows, err := db.Query(query_history_telemetryData, chosen_session_uid, user_index)
+		if err != nil {
+			log.Println("telemetryData_rows", err)
+		}
+
+		statusData_rows, err := db.Query(query_history_statusData, chosen_session_uid, user_index)
+		if err != nil {
+			log.Println("statusData_rows", err)
+		}
+
+		defer func() {
+			motionData_rows.Close()
+			sessionData_rows.Close()
+			lapData_rows.Close()
+			telemetryData_rows.Close()
+			statusData_rows.Close()
+		}()
+
+		List_motionData := []structs.History_motionData{}
+		List_sessionData := []structs.History_sessionData{}
+		List_lapData := []structs.History_lapData{}
+		List_telemetryData := []structs.History_telemetryData{}
+		List_statusData := []structs.History_statusData{}
+
+		for motionData_rows.Next() {
+			var select_from_database structs.History_motionData
+
+			err = motionData_rows.Scan(&select_from_database.Frame_identifier, &select_from_database.Suspension_position_rl, &select_from_database.Suspension_position_rr,
+				&select_from_database.Suspension_position_fl, &select_from_database.Suspension_position_fr, &select_from_database.M_worldPositionX,
+				&select_from_database.M_worldPositionY, &select_from_database.M_worldPositionZ)
+			if err != nil {
+				log.Println(err)
+			}
+
+			List_motionData = append(List_motionData, select_from_database)
+
+			// log.Println("motionData_rows:", Frame_identifier, Suspension_position_rl, Suspension_position_rr, Suspension_position_fl, Suspension_position_fr,
+			// 	m_worldPositionX, m_worldPositionY, m_worldPositionZ)
+		}
+
+		for sessionData_rows.Next() {
+			var select_from_database structs.History_sessionData
+
+			err = sessionData_rows.Scan(&select_from_database.M_totalLaps, &select_from_database.M_trackId)
+			if err != nil {
+				log.Println(err)
+			}
+
+			List_sessionData = append(List_sessionData, select_from_database)
+
+			// log.Println("sessionData_rows", m_totalLaps, m_trackId)
+		}
+
+		for lapData_rows.Next() {
+			var select_from_database structs.History_lapData
+
+			err = lapData_rows.Scan(&select_from_database.Frame_identifier, &select_from_database.M_lastLapTime, &select_from_database.M_currentLapTime, &select_from_database.M_bestLapTime,
+				&select_from_database.M_sector1Time, &select_from_database.M_sector2Time, &select_from_database.M_sector)
+			if err != nil {
+				log.Println(err)
+			}
+
+			List_lapData = append(List_lapData, select_from_database)
+
+			// log.Println("lapData_rows", Frame_identifier, m_lastLapTime, m_currentLapTime, m_bestLapTime, m_sector1Time, m_sector2Time, m_sector)
+		}
+
+		for telemetryData_rows.Next() {
+			var select_from_database structs.History_telemetryData
+
+			err = telemetryData_rows.Scan(&select_from_database.Frame_identifier, &select_from_database.M_speed, &select_from_database.M_throttle, &select_from_database.M_brake,
+				&select_from_database.M_gear, &select_from_database.M_engineRPM, &select_from_database.M_brakesTemperature_rl, &select_from_database.M_brakesTemperature_rr,
+				&select_from_database.M_brakesTemperature_fl, &select_from_database.M_brakesTemperature_fr, &select_from_database.M_tyresSurfaceTemperature_rl,
+				&select_from_database.M_tyresSurfaceTemperature_rr, &select_from_database.M_tyresSurfaceTemperature_fl, &select_from_database.M_tyresSurfaceTemperature_fr,
+				&select_from_database.M_tyresPressure_rl, &select_from_database.M_tyresPressure_rr, &select_from_database.M_tyresPressure_fl, &select_from_database.M_tyresPressure_fr)
+			if err != nil {
+				log.Println(err)
+			}
+
+			List_telemetryData = append(List_telemetryData, select_from_database)
+
+			// log.Println("telemetryData_rows", Frame_identifier, m_speed, m_throttle, m_brake, m_gear, m_engineRPM, m_brakesTemperature_rl, m_brakesTemperature_rr,
+			// 	 m_brakesTemperature_fl, m_brakesTemperature_fr, m_tyresSurfaceTemperature_rl, m_tyresSurfaceTemperature_rr, m_tyresSurfaceTemperature_fl,
+			// 	 m_tyresSurfaceTemperature_fr, m_tyresPressure_rl, m_tyresPressure_rr, m_tyresPressure_fl, m_tyresPressure_fr)
+		}
+
+		for statusData_rows.Next() {
+			var select_from_database structs.History_statusData
+
+			err = statusData_rows.Scan(&select_from_database.Frame_identifier, &select_from_database.M_maxRPM, &select_from_database.M_idleRPM, &select_from_database.M_maxGears,
+				&select_from_database.M_tyresWear_rl, &select_from_database.M_tyresWear_rr, &select_from_database.M_tyresWear_fl, &select_from_database.M_tyresWear_fr,
+				&select_from_database.M_tyresDamage_rl, &select_from_database.M_tyresDamage_rr, &select_from_database.M_tyresDamage_fl, &select_from_database.M_tyresDamage_fr)
+			if err != nil {
+				log.Println(err)
+			}
+
+			List_statusData = append(List_statusData, select_from_database)
+
+			// log.Println("statusData_rows", Frame_identifier, m_maxRPM, m_idleRPM, m_maxGears, m_tyresWear_rl, m_tyresWear_rr, m_tyresWear_fl, m_tyresWear_fr, m_tyresDamage_rl,
+			// 	&m_tyresDamage_rr, m_tyresDamage_fl, m_tyresDamage_fr)
+		}
+
+		List_motionData_struct := structs.List_motionData{
+			M_header: structs.PacketHeader{
+				M_packetId: 40,
+			},
+			MotionData: List_motionData,
+		}
+
+		List_sessionData_struct := structs.List_sessionData{
+			M_header: structs.PacketHeader{
+				M_packetId: 41,
+			},
+			SessionData: List_sessionData,
+		}
+
+		List_lapData_struct := structs.List_lapData{
+			M_header: structs.PacketHeader{
+				M_packetId: 42,
+			},
+			LapData: List_lapData,
+		}
+
+		List_telemetryData_struct := structs.List_telemetryData{
+			M_header: structs.PacketHeader{
+				M_packetId: 46,
+			},
+			TelemetryData: List_telemetryData,
+		}
+
+		List_statusData_struct := structs.List_statusData{
+			M_header: structs.PacketHeader{
+				M_packetId: 47,
+			},
+			StatusData: List_statusData,
+		}
+
+		List_motionData_marshaled, err := json.Marshal(List_motionData_struct)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		List_sessionData_marshaled, err := json.Marshal(List_sessionData_struct)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		List_lapData_marshaled, err := json.Marshal(List_lapData_struct)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		List_telemetryData_marshaled, err := json.Marshal(List_telemetryData_struct)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		List_statusData_marshaled, err := json.Marshal(List_statusData_struct)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		// Write our JSON formatted F1 UDP packet struct to our websocket
+		if err := c.conn.WriteMessage(websocket.TextMessage, List_motionData_marshaled); err != nil {
+			log.Println("", c.conn.RemoteAddr(), " ", "error with writing List_motionData_marshaled to history analyze websocket")
+			return
+		}
+
+		if err := c.conn.WriteMessage(websocket.TextMessage, List_sessionData_marshaled); err != nil {
+			log.Println("", c.conn.RemoteAddr(), " ", "error with writing List_sessionData_marshaled to history analyze websocket")
+			return
+		}
+
+		if err := c.conn.WriteMessage(websocket.TextMessage, List_lapData_marshaled); err != nil {
+			log.Println("", c.conn.RemoteAddr(), " ", "error with writing List_lapData_marshaled to history analyze websocket")
+			return
+		}
+
+		if err := c.conn.WriteMessage(websocket.TextMessage, List_telemetryData_marshaled); err != nil {
+			log.Println("", c.conn.RemoteAddr(), " ", "error with writing List_telemetryData_marshaled to history analyze websocket")
+			return
+		}
+
+		if err := c.conn.WriteMessage(websocket.TextMessage, List_statusData_marshaled); err != nil {
+			log.Println("", c.conn.RemoteAddr(), " ", "error with writing List_statusData_marshaled to history analyze websocket")
+			return
+		}
+
+	}
 
 }

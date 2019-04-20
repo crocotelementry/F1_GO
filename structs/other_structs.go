@@ -101,99 +101,99 @@ type History_status struct {
 type List_motionData struct {
 	M_header PacketHeader
 
-	motionData []History_motionData
+	MotionData []History_motionData
 }
 
 type List_sessionData struct {
 	M_header PacketHeader
 
-	sessionData []History_sessionData
+	SessionData []History_sessionData
 }
 
 type List_lapData struct {
 	M_header PacketHeader
 
-	lapData []History_lapData
+	LapData []History_lapData
 }
 
 type List_telemetryData struct {
 	M_header PacketHeader
 
-	telemetryData []History_telemetryData
+	TelemetryData []History_telemetryData
 }
 
 type List_statusData struct {
 	M_header PacketHeader
 
-	statusData []History_statusData
+	StatusData []History_statusData
 }
 
 type History_motionData struct {
-	frame_identifier       int
-	suspension_position_rl float32
-	suspension_position_rr float32
-	suspension_position_fl float32
-	suspension_position_fr float32
-	m_worldPositionX       float32
-	m_worldPositionY       float32
-	m_worldPositionZ       float32
+	Frame_identifier       int
+	Suspension_position_rl float32
+	Suspension_position_rr float32
+	Suspension_position_fl float32
+	Suspension_position_fr float32
+	M_worldPositionX       float32
+	M_worldPositionY       float32
+	M_worldPositionZ       float32
 }
 
 type History_sessionData struct {
-	frame_identifier       int
-	suspension_position_rl float32
-	suspension_position_rr float32
-	suspension_position_fl float32
-	suspension_position_fr float32
-	m_worldPositionX       float32
-	m_worldPositionY       float32
-	m_worldPositionZ       float32
-	m_totalLaps            int
-	m_trackId              int
+	Mrame_identifier       int
+	Suspension_position_rl float32
+	Suspension_position_rr float32
+	Suspension_position_fl float32
+	Suspension_position_fr float32
+	M_worldPositionX       float32
+	M_worldPositionY       float32
+	M_worldPositionZ       float32
+	M_totalLaps            int
+	M_trackId              int
 }
 
 type History_lapData struct {
-	frame_identifier int
-	m_lastLapTime    float32
-	m_currentLapTime float32
-	m_bestLapTime    float32
-	m_sector1Time    float32
-	m_sector2Time    float32
-	m_sector         int
+	Frame_identifier int
+	M_lastLapTime    float32
+	M_currentLapTime float32
+	M_bestLapTime    float32
+	M_sector1Time    float32
+	M_sector2Time    float32
+	M_sector         int
 }
 
 type History_telemetryData struct {
-	frame_identifier             int
-	m_speed                      int
-	m_throttle                   int
-	m_brake                      int
-	m_gear                       int
-	m_engineRPM                  int
-	m_brakesTemperature_rl       int
-	m_brakesTemperature_rr       int
-	m_brakesTemperature_fl       int
-	m_brakesTemperature_fr       int
-	m_tyresSurfaceTemperature_rl int
-	m_tyresSurfaceTemperature_rr int
-	m_tyresSurfaceTemperature_fl int
-	m_tyresSurfaceTemperature_fr int
-	m_tyresPressure_rl           float32
-	m_tyresPressure_rr           float32
-	m_tyresPressure_fl           float32
-	m_tyresPressure_fr           float32
+	Frame_identifier             int
+	M_speed                      int
+	M_throttle                   int
+	M_brake                      int
+	M_gear                       int
+	M_engineRPM                  int
+	M_brakesTemperature_rl       int
+	M_brakesTemperature_rr       int
+	M_brakesTemperature_fl       int
+	M_brakesTemperature_fr       int
+	M_tyresSurfaceTemperature_rl int
+	M_tyresSurfaceTemperature_rr int
+	M_tyresSurfaceTemperature_fl int
+	M_tyresSurfaceTemperature_fr int
+	M_tyresPressure_rl           float32
+	M_tyresPressure_rr           float32
+	M_tyresPressure_fl           float32
+	M_tyresPressure_fr           float32
 }
 
 type History_statusData struct {
-	frame_identifier int
-	m_maxRPM         int
-	m_idleRPM        int
-	m_maxGears       int
-	m_tyresWear_rl   int
-	m_tyresWear_rr   int
-	m_tyresWear_fl   int
-	m_tyresWear_fr   int
-	m_tyresDamage_rl int
-	m_tyresDamage_rr int
-	m_tyresDamage_fl int
-	m_tyresDamage_fr int
+	Frame_identifier int
+	M_maxRPM         int
+	M_idleRPM        int
+	M_maxGears       int
+	M_tyresWear_rl   int
+	M_tyresWear_rr   int
+	M_tyresWear_fl   int
+	M_tyresWear_fr   int
+	M_tyresDamage_rl int
+	M_tyresDamage_rr int
+	M_tyresDamage_fl int
+	M_tyresDamage_fr int
 }
