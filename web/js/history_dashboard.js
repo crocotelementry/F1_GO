@@ -138,6 +138,21 @@ function add_session_row(session_uid, session_start, session_end, popup_type) {
 }
 
 
+
+function add_lap_to_lap_selector(lap_num) {
+  var new_div = document.createElement('div');
+  new_div.className = 'lap_selection_element_class';
+
+  var new_span = document.createElement('span');
+  new_span.className = 'select_lap_nav_button';
+  new_span.innerHTML = lap_num;
+
+  new_div.appendChild(new_span);
+
+  document.getElementById('lap_selection_left').appendChild(new_div);
+}
+
+
 // connect to websocket
 var ws = new WebSocket('ws:localhost:8080/history/ws');
 
@@ -266,6 +281,36 @@ ws.onmessage = function(event) {
         add_session_row(data.Sessions[session_number].Session_UID, data.Sessions[session_number].Session_start_time, data.Sessions[session_number].Session_end_time, "history_popup_body")
       }
 
+      break;
+
+
+    case 40:
+      console.log("packet 40 motionData recieved");
+      break;
+
+    case 41:
+      console.log("packet 41 sessionData recieved");
+      // Get amount of laps from this to then set up everything else
+      console.log("amount of laps is:", data.SessionData[(data.SessionData).length - 1].M_totalLaps)
+
+      break;
+
+    case 42:
+      console.log("packet 42 lapData recieved");
+
+      for (lap = 0; lap < data.LapData.length; lap++) {
+        console.log("lap ", data.LapData[lap].LapNum, " is included")
+        add_lap_to_lap_selector(data.LapData[lap].LapNum)
+      }
+
+      break;
+
+    case 46:
+      console.log("packet 46 telemetryData recieved");
+      break;
+
+    case 47:
+      console.log("packet 47 statusData recieved");
       break;
 
   }

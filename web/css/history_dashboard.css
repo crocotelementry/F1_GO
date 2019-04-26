@@ -264,13 +264,13 @@ body {
 
 /*  */
 
-#page_title {
+.page_title, .lap_selection {
   margin-top: 1em;
   height: 2em;
   line-height: 2em;
 }
 
-.page_title_left_class {
+.page_title_left_class, .lap_selection_left_class, .lap_selection_element_class {
   display: inline-block;
 }
 
@@ -282,6 +282,24 @@ body {
   padding-top: 0.2em;
   margin-left: 3em;
   padding-bottom: 0.2em;
+  border-style: solid;
+  border-color: #254E58;
+}
+
+.select_lap_nav_button {
+  border-radius: 6px;
+  background-color: #254E58;
+  padding-left: 1.5em;
+  padding-right: 1.5em;
+  padding-top: 0.2em;
+  margin-left: 3em;
+  padding-bottom: 0.2em;
+  border-style: solid;
+  border-color: #254E58;
+}
+
+.select_lap_nav_button:hover, #select_session_nav_button:hover {
+  background-color: #112D32;
 }
 
 .element_container {
