@@ -183,118 +183,647 @@
 
 
   <div class="element_container">
-    <div class="page_title" id="">
-      <div id="page_title_left">
-        <div class="page_title_left_class" id="page_title_text_span_container">
-          <span id="page_title_text">History</span>
+    <div class="" id="history_grid">
+      <div class="histroy_grid_element" id="history_grid_top">
+        <div class="page_title" id="">
+          <div id="page_title_left">
+            <div class="page_title_left_class" id="page_title_text_span_container">
+              <span id="page_title_text">History</span>
+            </div>
+            <div class="page_title_left_class" id="select_session_container">
+              <span id="select_session_nav_button">Select Session</span>
+            </div>
+          </div>
+          <div id="page_title_right"></div>
         </div>
-        <div class="page_title_left_class" id="select_session_container">
-          <span id="select_session_nav_button">Select Session</span>
+
+        <!-- Start history data -->
+
+        <!-- Lap selection -->
+        <div class="lap_selection" id="">
+          <div id="lap_selection_left">
+            <div class="lap_selection_left_class" id="lap_selection_text_span_container">
+              <span id="lap_selection_left_text">Select Lap</span>
+            </div>
+            <div class="lap_selection_element_class" id="select_lap_container">
+              <span class="select_lap_nav_button">ALL</span>
+            </div>
+          </div>
+          <!-- <div id="page_title_right"></div> -->
         </div>
+        <!-- end lap selection -->
+
+        <!-- sgr or speed gear rpm, graph -->
+        <div class="live_page_element" id="sgr_graph">
+          <div class="graph_title">
+            <div class="graph_title_left">
+              <span class="graph_title_text speed_title_text">Speed </span>
+              <span class="graph_title_text">| </span>
+              <span class="graph_title_text gear_title_text">Gear </span>
+              <span class="graph_title_text">| </span>
+              <span class="graph_title_text rpm_title_text">RPM</span>
+            </div>
+            <div class- "graph_title_right">
+              <span class="graph_title_control"></span>
+            </div>
+          </div>
+
+          <div id="sgr_graph_container">
+            <canvas id="sgr_graph_canvas"></canvas>
+          </div>
+        </div>
+        <!-- End sgr graph -->
       </div>
-      <div id="page_title_right"></div>
+
+      <div class="histroy_grid_element" id="history_grid_middle">
+        <!-- Time Map Standings -->
+        <div class="" id="History_mid_section_grid">
+
+          <div class="mid_section_grid_element" id="history_grid_time">
+            <div class="element_title" id="time_element_title">
+              <div class="element_title_left">
+                <span class="element_title_text">Times</span>
+              </div>
+              <div class- "element_title_right">
+                <span class="element_title_control"></span>
+              </div>
+            </div>
+
+            <div class="" id="time_element_grid">
+              <div class="time_element_grid_element" id="time_element_total_time">
+                <div class="time_element_grid_data_container">
+                  <div class="time_element_title">
+                    <span class="time_element_title_text">Total Time</span>
+                  </div>
+                  <div class="time_element_data">
+                    <span class="time_element_data_text" id="total_time">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="time_element_grid_element" id="time_element_current_lap">
+                <div class="time_element_grid_data_container">
+                  <div class="time_element_title">
+                    <span class="time_element_title_text">Current Lap</span>
+                  </div>
+                  <div class="time_element_data">
+                    <span class="time_element_data_text" id="current_lap">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="time_element_grid_element" id="time_element_last_lap">
+                <div class="time_element_grid_data_container">
+                  <div class="time_element_title">
+                    <span class="time_element_title_text">Last Lap</span>
+                  </div>
+                  <div class="time_element_data">
+                    <span class="time_element_data_text" id="last_lap">N/A</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="time_element_grid_element" id="time_element_best_lap">
+                <div class="time_element_grid_data_container">
+                  <div class="time_element_title">
+                    <span class="time_element_title_text">Best Lap</span>
+                  </div>
+                  <div class="time_element_data">
+                    <span class="time_element_data_text" id="best_lap">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="time_element_grid_element" id="time_element_penalties">
+                <div class="time_element_grid_data_container">
+                  <div class="time_element_title">
+                    <span class="time_element_title_text">Penalties</span>
+                  </div>
+                  <div class="time_element_data">
+                    <span class="time_element_data_text" id="penalties">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="time_element_grid_element" id="time_element_current_sector">
+                <div class="time_element_grid_data_container">
+                  <div class="time_element_title">
+                    <span class="time_element_title_text">Current Sector</span>
+                  </div>
+                  <div class="time_element_data">
+                    <span class="time_element_data_text" id="current_sector">N/A</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="time_element_grid_element" id="time_element_sector_1">
+                <div class="time_element_grid_data_container">
+                  <div class="time_element_title">
+                    <span class="time_element_title_text">Sector 1</span>
+                  </div>
+                  <div class="time_element_data">
+                    <span class="time_element_data_text" id="sector_1">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="time_element_grid_element" id="time_element_sector_2">
+                <div class="time_element_grid_data_container">
+                  <div class="time_element_title">
+                    <span class="time_element_title_text">Sector 2</span>
+                  </div>
+                  <div class="time_element_data">
+                    <span class="time_element_data_text" id="sector_2">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="time_element_grid_element" id="time_element_sector_3">
+                <div class="time_element_grid_data_container">
+                  <div class="time_element_title">
+                    <span class="time_element_title_text">Sector 3</span>
+                  </div>
+                  <div class="time_element_data">
+                    <span class="time_element_data_text" id="sector_3">N/A</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mid_section_grid_element" id="history_grid_map">
+            <div class="element_title">
+              <div class="element_title_left">
+                <span class="element_title_text">Map</span>
+              </div>
+              <div class- "element_title_right">
+                <span class="element_title_control"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mid_section_grid_element" id="history_grid_standing">
+            <!--  -->
+            <div class="element_title">
+              <div class="element_title_left">
+                <span class="element_title_text">Standings</span>
+              </div>
+              <div class- "element_title_right">
+                <span class="element_title_control"></span>
+              </div>
+            </div>
+
+            <!-- <div id="standing_element_grid_container"> -->
+            <div id="standing_element_grid">
+              <div class="standing_element_grid_element" id="standing_1">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_2">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_3">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_4">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_5">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_6">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_7">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_8">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_9">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_10">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_11">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_12">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_13">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_14">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_15">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_16">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_17">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_18">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_19">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+              <div class="standing_element_grid_element" id="standing_20">
+                <div class="standing_color"></div>
+                <div class="standing_name"></div>
+                <div class="standing_time"></div>
+                <div class="Standing_other"></div>
+              </div>
+            </div>
+            <!--  -->
+          </div>
+          <!-- </div> -->
+
+        </div>
+        <!-- End time Map Standings -->
+      </div>
+
+      <div class="histroy_grid_element" id="history_grid_bottom">
+        <!-- wheels tires brakes suspension -->
+        <div class="" id="History_bottom_section_grid">
+          <div class="" id="left_car_grid">
+            <div class="" id="left_front_car_grid">
+              <div class="bottom_section_grid_element" id="fl_tyre_pressure" data-hover_object="f1_svg_fl_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Pressure</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="fl_tyre_pressure_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="fl_tyre_wear" data-hover_object="f1_svg_fl_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Wear</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="fl_tyre_wear_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="fl_tyre_temp" data-hover_object="f1_svg_fl_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Temperature</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="fl_tyre_temp_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bottom_section_grid_element" id="fl_suspension_position" data-hover_object="f1_svg_fl_suspension_struct">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Suspension Position</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="fl_suspension_position_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="fl_tyre_damage" data-hover_object="f1_svg_fl_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Damage</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="fl_tyre_damage_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="fl_break_temp" data-hover_object="f1_svg_fl_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Break Temperature</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="fl_break_temp_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="" id=""></div>
+            <div class="" id="left_back_car_grid">
+              <div class="bottom_section_grid_element" id="bl_suspension_position" data-hover_object="f1_svg_rl_suspension_struct">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Suspension Position</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="bl_suspension_position_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="bl_tyre_damage" data-hover_object="f1_svg_rl_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Damage</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="bl_tyre_damage_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="bl_break_temp" data-hover_object="f1_svg_rl_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Break Temperature</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="bl_break_temp_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bottom_section_grid_element" id="bl_tyre_pressure" data-hover_object="f1_svg_rl_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Pressure</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="bl_tyre_pressure_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="bl_tyre_wear" data-hover_object="f1_svg_rl_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Wear</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="bl_tyre_wear_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="bl_tyre_temp" data-hover_object="f1_svg_rl_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Temperature</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="bl_tyre_temp_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="" id="F1_car_graphic">
+            <svg xmlns="http://www.w3.org/2000/svg" ns="http://www.w3.org/2000/svg" viewBox="0 0 2000 6000" fill="none" stroke="white" stroke-width="8" height="100%" width="100%">
+              <path d="M-87 955C-65 933-54 933 91 932 260 932 276 938 305 992 313 1008 320 1040 320 1062 320 1085 325 1102 331 1102 339 1102 341 1075 339 1013 335 918 347 891 366 950 373 973 388 989 411 1000 442 1016 445 1023 448 1065L451 1112 626 1113 800 1113 800 711 800 311 747 314 695 317 688 410C685 461 676 509 670 517 662 526 640 532 611 532 525 533 493 548 396 640 346 687 299 736 292 749 280 771 276 772 140 772L0 773 0 472C0 241 3 170 12 167 19 165 244 142 513 117L1001 71 1488 117C1756 142 1981 166 1987 167 1997 170 2000 240 2000 472L2000 772 1870 772 1740 772 1635 670C1577 613 1517 561 1503 553 1488 545 1445 537 1408 534 1371 532 1335 524 1330 518 1324 511 1317 466 1314 421 1311 376 1307 331 1305 325 1302 317 1283 312 1257 313L1213 312 1207 584C1203 733 1200 913 1200 984L1200 1112 1375 1113 1550 1112 1550 1077C1550 1029 1563 1006 1599 994 1620 988 1630 976 1635 954 1639 936 1648 923 1656 922 1668 922 1670 937 1664 1012 1659 1077 1660 1102 1669 1103 1675 1102 1680 1087 1680 1067 1680 1021 1702 969 1731 948 1750 936 1782 932 1910 932 2130 932 2110 897 2110 1298L2110 1619 2085 1642C2060 1666 2055 1666 1917 1664 1759 1661 1719 1649 1695 1602 1687 1586 1680 1560 1680 1542 1680 1499 1714 1483 1337 1704L1219 1775 1267 1805C1305 1831 1328 1837 1381 1840L1447 1845 1460 1937C1475 2051 1504 2166 1530 2215 1549 2251 1549 2252 1530 2253 1520 2253 1508 2257 1505 2262 1498 2275 1574 2430 1603 2460L1624 2482 1653 2432C1690 2367 1719 2349 1765 2356 1801 2364 1802 2365 1815 2446 1818 2466 1825 2483 1830 2482 1836 2483 1840 2920 1840 3661L1840 4841 1750 4845C1670 4848 1658 4851 1635 4873 1622 4887 1608 4914 1605 4933L1599 4968 1613 4936C1641 4877 1655 4873 1856 4873L2039 4872 2059 4899C2079 4925 2080 4937 2080 5240L2080 5554 2055 5578C2031 5602 2028 5603 1865 5603 1721 5602 1694 5600 1662 5584 1619 5562 1600 5529 1600 5478 1600 5449 1596 5443 1580 5443 1561 5443 1560 5446 1566 5481 1569 5501 1581 5538 1591 5562 1620 5629 1618 5633 1554 5633L1497 5633 1502 5783C1506 5890 1504 5933 1496 5929 1490 5928 1481 5890 1476 5844L1467 5763 1276 5764 1085 5768 1082 5816 1079 5863 1000 5863 921 5863 918 5816 915 5767 722 5764 530 5763 529 5815C527 5881 518 5925 505 5930 498 5932 496 5881 499 5783L502 5633 446 5633C382 5633 378 5626 410 5564 421 5542 432 5506 436 5483 442 5446 441 5443 421 5443 403 5443 400 5449 400 5486 400 5537 379 5570 334 5589 285 5610-17 5608-45 5587-71 5568-78 5481-79 5167-80 4937-79 4924-59 4899L-39 4873 149 4873 336 4873 365 4903C388 4927 395 4945 400 5000L407 5067 409 5012C412 4880 376 4843 242 4843L160 4843 160 3663C160 2669 162 2482 174 2483 183 2482 190 2464 194 2430 203 2367 213 2352 252 2352 297 2352 317 2368 352 2429L384 2487 404 2459C434 2421 509 2269 503 2260 501 2255 490 2253 479 2253 467 2252 460 2249 462 2246 499 2173 549 1973 550 1897 550 1853 559 1846 628 1838 666 1833 710 1820 737 1804L783 1779 760 1763C717 1733 336 1513 328 1512 324 1513 320 1525 320 1541 320 1585 304 1620 274 1640 253 1654 216 1659 111 1664-36 1671-79 1662-99 1624-106 1610-110 1496-110 1289L-110 976-87 955Z"/>
+              <path data-hover_object="fl_tyre_temp, fl_tyre_damage, fl_break_temp, fl_tyre_wear, fl_tyre_pressure" class="f1_svg_hover_object" id="f1_svg_fl_tyre" d="M-74 1631C-50 1651-34 1653 82 1653 182 1652 220 1648 247 1636 311 1605 311 1605 308 1290L305 1003 276 973 246 942 93 942C-47 942-62 944-80 962-99 981-100 995-100 1296L-100 1611-74 1631Z"/>
+              <path data-hover_object="" class="f1_svg_hover_object" id="f1_svg_rl_tyre" d="M-43 5573C-32 5585 3 5588 117 5591 198 5593 279 5591 297 5588L330 5582 332 5440 334 5298 340 5437 345 5578 367 5549C390 5521 390 5514 390 5246 390 5012 388 4966 374 4936 365 4918 349 4898 339 4892 328 4887 245 4883 145 4883L-30 4885-50 4910C-70 4936-71 4944-64 5247-59 5494-55 5561-43 5573Z"/>
+              <path d="M30 522C36 522 41 481 42 421L44 317 49 417 55 518 73 473C85 444 93 390 97 301L103 172 62 175 20 176 20 349C20 458 24 522 30 522Z"/>
+              <path d="M194 632C235 632 280 629 294 622 317 615 320 607 320 561 320 516 318 512 302 517 293 521 250 535 208 549 132 574 130 577 121 626 121 629 153 632 194 632Z"/>
+              <path d="M154 461C156 461 187 453 224 442 274 427 294 416 302 396 314 369 321 367 337 383 344 391 369 387 421 371 475 354 520 348 587 347L680 347 680 306 680 262 557 262C490 263 430 266 424 271 419 275 404 294 391 316 379 336 364 352 359 352 353 352 358 339 369 324 387 299 396 272 387 272 386 273 360 281 330 291 291 304 268 321 252 343 239 362 222 384 214 393 202 404 200 404 200 391 200 368 174 348 154 357 141 361 139 371 145 410 149 436 153 458 154 461Z"/>
+              <path d="M210 4232C232 4249 250 4268 250 4272 250 4277 236 4268 219 4252 202 4236 184 4226 179 4229 159 4241 172 4271 210 4301 232 4319 250 4339 250 4345 250 4352 237 4345 222 4330 187 4297 170 4295 170 4326 170 4342 182 4357 207 4374 227 4387 246 4404 248 4413 251 4421 239 4416 223 4400 187 4367 170 4365 170 4396 170 4413 182 4428 210 4447 232 4461 250 4478 250 4483 250 4490 236 4483 219 4469 181 4437 170 4436 170 4467 170 4483 182 4498 205 4514 224 4527 242 4544 245 4550 248 4559 236 4553 219 4539 181 4507 170 4506 170 4537 170 4553 182 4568 210 4587 232 4601 250 4618 250 4624 250 4629 236 4623 219 4609 180 4575 170 4576 170 4612 170 4635 177 4645 197 4654 214 4663 235 4688 250 4717 269 4755 283 4770 310 4779 329 4786 337 4792 328 4792 291 4794 259 4772 244 4736 225 4691 202 4663 183 4663 172 4663 170 4680 172 4746L175 4828 257 4831C317 4833 340 4830 343 4821 345 4814 346 4816 345 4826 343 4834 346 4843 350 4843 355 4843 373 4859 391 4878 442 4932 469 4927 528 4852L575 4791 581 4649 586 4508 543 4342C519 4252 461 4036 416 3863 274 3330 276 3340 276 3097 275 2982 279 2859 283 2824L291 2759 241 2765 190 2770 189 2719C189 2691 185 2659 180 2647 175 2637 171 2965 171 3414L170 4199 210 4232Z"/>
+              <path d="M223 2752C261 2753 563 2724 590 2717 606 2714 612 2715 605 2721 599 2727 546 2735 485 2743 424 2749 372 2760 368 2766 362 2774 360 2775 360 2765 360 2759 352 2753 341 2753 311 2752 303 2773 290 2877 273 3007 283 3267 309 3393 343 3560 411 3732 492 3852 508 3875 519 3896 517 3899 510 3905 475 3854 424 3760 399 3714 381 3687 385 3699 392 3724 520 4211 557 4352 587 4465 589 4465 605 4330 609 4298 614 4274 617 4276 619 4279 617 4321 611 4370 606 4418 598 4517 594 4589L588 4720 614 4727C636 4732 640 4739 640 4772 640 4796 633 4816 620 4827 596 4849 594 4869 615 4876 632 4883 750 4756 750 4731 750 4716 754 4716 779 4724 838 4745 830 4774 739 4875 622 5003 620 5008 620 5051 620 5091 639 5119 648 5094 651 5084 654 5084 660 5093 664 5100 712 5105 790 5110L913 5116 907 5029C903 4979 905 4943 910 4943 915 4943 921 4881 923 4806 925 4729 926 4767 926 4891L925 5112 1003 5113 1081 5113 1076 4881C1072 4693 1073 4668 1081 4753 1086 4811 1090 4916 1091 4987L1091 5114 1213 5110C1280 5106 1336 5104 1337 5103 1339 5103 1341 5094 1341 5086 1342 5069 1343 5068 1347 5086 1349 5094 1358 5103 1366 5103 1378 5103 1380 5091 1378 5050 1376 5015 1371 4999 1362 5001 1356 5002 1350 4995 1350 4986 1350 4976 1325 4942 1296 4911 1205 4814 1190 4793 1190 4762 1190 4740 1196 4732 1214 4727 1231 4723 1240 4713 1243 4695 1246 4676 1247 4679 1249 4708 1250 4742 1259 4757 1313 4814 1370 4876 1400 4891 1400 4858 1400 4851 1394 4840 1386 4834 1375 4824 1371 4826 1367 4840 1364 4849 1363 4795 1363 4718 1364 4610 1365 4595 1369 4653 1374 4714 1378 4728 1392 4729 1408 4731 1410 4721 1410 4649 1409 4575 1398 4424 1385 4313 1381 4282 1383 4274 1389 4287 1393 4299 1401 4341 1405 4381 1409 4421 1414 4453 1415 4450 1419 4447 1596 3782 1605 3737 1610 3714 1606 3716 1583 3757 1548 3819 1491 3903 1484 3902 1481 3903 1481 3899 1483 3896 1562 3768 1584 3727 1609 3668 1652 3566 1689 3433 1705 3323 1731 3152 1718 2766 1686 2760 1680 2761 1664 2758 1650 2757 1567 2750 1405 2731 1401 2726 1394 2719 1437 2723 1585 2737 1662 2746 1742 2753 1762 2753L1800 2752 1800 2702C1800 2661 1797 2652 1787 2660 1778 2669 1712 2662 1552 2636 1422 2615 1325 2603 1321 2608 1316 2614 1318 2655 1325 2702L1337 2787 1342 2722C1345 2687 1346 2896 1343 3188 1341 3479 1334 3736 1330 3757 1323 3788 1322 3780 1325 3717 1335 3550 1332 2968 1321 2965 1316 2962 1309 2978 1307 2999L1303 3038 1302 2994C1301 2970 1296 2933 1291 2909 1285 2886 1278 2851 1275 2831L1269 2793 1215 2793 1160 2793 1163 2973C1164 3071 1162 3152 1158 3152 1154 3152 1150 3143 1148 3130 1146 3118 1139 3107 1132 3104 1123 3102 1120 3117 1120 3163 1120 3213 1125 3230 1145 3256 1168 3287 1170 3299 1170 3386 1170 3463 1167 3484 1155 3488 1143 3493 1140 3519 1140 3626 1140 3874 1120 4107 1058 4568 1051 4618 1044 4650 1042 4641 1040 4631 1052 4519 1069 4391 1108 4101 1118 3975 1126 3706L1133 3495 1097 3489C1055 3481 1024 3494 1015 3523 1009 3542 990 3551 990 3534 990 3510 947 3483 910 3482L870 3482 870 3580C870 3805 894 4099 939 4441 954 4557 964 4653 960 4653 953 4653 895 4207 880 4032 874 3970 867 3808 863 3676 860 3541 853 3433 848 3433 844 3432 840 3397 840 3356 840 3293 844 3272 860 3252 883 3223 890 3098 868 3104 861 3107 853 3120 849 3134 845 3147 842 3076 841 2975L840 2792 786 2793 731 2793 725 2840C715 2920 701 2963 683 2963 669 2962 668 3003 671 3381 673 3609 672 3770 669 3737 665 3705 661 3514 660 3313 659 3112 655 2881 651 2799 648 2718 648 2648 653 2646 657 2643 660 2644 659 2649 658 2654 659 2690 660 2727 662 2791 663 2793 670 2757 688 2663 690 2612 675 2607 668 2604 572 2615 463 2634 354 2650 250 2665 232 2665 201 2665 200 2666 200 2709 200 2747 202 2753 223 2752Z"/>
+              <path d="M219 2508C235 2498 239 2516 231 2553 225 2579 227 2592 241 2607 258 2624 260 2625 292 2605 310 2593 338 2569 355 2552L385 2521 347 2447C315 2386 304 2372 278 2368 261 2364 243 2366 237 2371 231 2378 229 2383 232 2383 235 2382 231 2406 224 2436 209 2501 208 2516 219 2508Z"/>
+              <path d="M337 276C404 254 405 252 412 211 422 154 434 147 427 205L421 250 550 251 680 250 680 181 680 110 642 116C622 119 551 126 485 133 278 150 294 143 283 215 277 249 272 282 271 289 271 294 298 289 337 276Z"/>
+              <path data-hover_object="" class="f1_svg_hover_object" id="f1_svg_fl_suspension_struct" d="M405 1509C452 1541 488 1568 486 1570 484 1572 448 1552 406 1523 328 1470 320 1466 320 1482 320 1487 357 1512 402 1537 448 1564 489 1587 494 1591 499 1594 500 1591 496 1585 483 1562 500 1572 603 1641 659 1679 724 1722 747 1736L788 1761 787 1706 785 1651 610 1545C428 1433 402 1407 414 1357 425 1315 469 1303 748 1267L801 1260 799 1211C797 1169 794 1163 776 1162 760 1163 758 1165 769 1171 777 1177 764 1179 734 1176 699 1172 689 1174 699 1181 710 1188 701 1189 670 1185 641 1182 629 1182 633 1190 638 1197 626 1199 598 1196 566 1193 560 1194 575 1202 589 1208 579 1209 540 1205 501 1202 489 1203 499 1211 510 1219 501 1220 469 1217 435 1212 428 1213 440 1223 452 1232 448 1232 423 1228 406 1224 376 1225 356 1229L320 1235 320 1344 320 1453 405 1509Z"/>
+              <path d="M336 593C339 592 358 579 378 563 435 517 504 491 586 485 634 481 664 475 672 464 684 451 672 450 575 456 462 461 351 486 338 506 329 520 327 593 336 593Z"/>
+              <path d="M357 2639C373 2635 430 2625 485 2618 632 2595 636 2594 648 2568 660 2541 648 2522 615 2522 585 2521 560 2500 550 2463 543 2437 545 2428 559 2413 569 2404 582 2383 587 2368 594 2346 618 2328 681 2291L765 2243 771 2180C781 2084 781 1903 772 1903 753 1903 732 1941 725 1986 707 2114 640 2269 569 2347 544 2374 514 2413 501 2431 489 2449 475 2461 470 2458 465 2454 458 2458 454 2463 450 2471 451 2472 458 2468 465 2465 470 2466 470 2472 470 2482 351 2593 338 2592 334 2592 330 2605 330 2618 330 2641 333 2644 357 2639Z"/>
+              <path d="M348 472C353 472 379 465 406 457 433 448 495 439 545 436 675 428 680 428 680 392 680 368 676 362 645 356 599 349 515 359 417 384 340 405 340 405 340 438 340 457 344 472 348 472Z"/>
+              <path d="M426 2478C446 2456 466 2438 472 2437 478 2437 490 2427 499 2412 510 2396 511 2391 501 2396 492 2403 489 2402 492 2391 495 2384 502 2378 508 2378 513 2377 522 2374 527 2368 532 2364 530 2362 522 2367 504 2377 507 2364 535 2315 549 2293 567 2273 574 2272 587 2273 603 2214 616 2120 620 2086 626 2072 636 2077 650 2081 653 2070 670 1962 687 1851 688 1853 625 1853 572 1852 571 1852 566 1885 534 2077 517 2151 485 2225 480 2238 483 2243 499 2242 511 2242 520 2248 520 2255 520 2275 435 2443 411 2472 376 2515 389 2519 426 2478Z"/>
+              <path data-hover_object="" class="f1_svg_hover_object" id="f1_svg_rl_suspension_struct" d="M415 5319C422 5309 431 5283 435 5263 439 5241 447 5220 454 5214 462 5207 524 5207 640 5213 902 5227 880 5230 880 5185L880 5145 725 5140C569 5135 540 5128 540 5096 540 5088 597 5016 667 4936 741 4853 796 4781 798 4767 803 4733 786 4737 749 4780 732 4801 721 4812 725 4804 731 4795 729 4792 721 4797 715 4801 712 4808 715 4813 718 4818 700 4839 676 4859 651 4880 633 4900 636 4904 638 4908 616 4932 585 4959 555 4985 533 5009 535 5012 543 5019 488 5073 473 5073 465 5073 462 5078 465 5083 469 5089 457 5093 436 5093L400 5093 400 5216C401 5323 402 5336 415 5319Z"/>
+              <path d="M450 5613 500 5613 500 5413C500 5286 496 5212 490 5212 484 5213 480 5258 480 5328 480 5419 477 5443 466 5443 458 5443 450 5460 446 5491 442 5517 431 5554 420 5573 409 5591 401 5609 400 5611 400 5612 422 5613 450 5613Z"/>
+              <path data-hover_object="" class="f1_svg_hover_object" id="f1_svg_fl_suspension" d="M596 1372 761 1372 758 1341 755 1307 621 1311C482 1313 430 1327 430 1357 430 1371 456 1373 596 1372Z"/>
+              <path d="M452 1429C479 1453 780 1636 784 1631 792 1621 797 1371 789 1367 784 1364 777 1368 773 1377 768 1393 751 1393 599 1387 455 1382 430 1382 430 1394 430 1403 440 1418 452 1429Z"/>
+              <path d="M705 5353 880 5353 880 5295 880 5236 752 5230C682 5226 604 5223 577 5223L530 5223 530 5288 530 5353 705 5353Z"/>
+              <path d="M1000 5683 1450 5683 1450 5527 1450 5373 1235 5373 1021 5373 1018 5475C1016 5545 1011 5578 1002 5581 993 5584 990 5559 990 5479L990 5373 770 5372 550 5373 550 5528 550 5683 1000 5683Z"/>
+              <path d="M1000 5752 1450 5753 1450 5723 1450 5693 1007 5693C763 5693 560 5696 557 5700 553 5702 550 5717 550 5730L550 5753 1000 5752Z"/>
+              <path d="M581 2317C609 2291 675 2151 694 2076 713 2001 714 1987 695 2028 676 2070 678 2037 698 1978 711 1941 724 1922 752 1904 786 1881 790 1875 790 1836 790 1811 787 1793 784 1793 778 1793 715 1828 701 1840 693 1844 671 2045 677 2054 680 2061 673 2077 662 2092 651 2107 639 2139 635 2162 626 2217 607 2265 580 2299 554 2332 554 2341 581 2317Z"/>
+              <path d="M682 2897C692 2902 692 2903 682 2908 668 2916 666 2952 680 2953 693 2952 698 2931 719 2768 738 2622 752 2576 793 2530 882 2434 1099 2430 1198 2524 1251 2576 1266 2616 1285 2765 1298 2872 1305 2899 1316 2896 1327 2892 1329 2872 1324 2809 1322 2764 1316 2727 1312 2725 1307 2724 1306 2706 1308 2688 1310 2667 1307 2646 1302 2640 1296 2632 1293 2618 1296 2605 1308 2561 1227 2455 1154 2420 1115 2399 1042 2320 1024 2277 1016 2257 1010 2209 1010 2163 1010 2115 1006 2082 1000 2083 994 2083 990 2117 990 2167 990 2213 986 2262 980 2277 963 2324 908 2383 850 2418 782 2459 735 2507 745 2524 750 2531 749 2534 741 2528 725 2519 697 2588 702 2630 704 2647 702 2664 697 2666 693 2667 688 2701 686 2739 685 2779 681 2816 677 2819 665 2831 669 2890 682 2897Z"/>
+              <path d="M729 302C784 303 800 294 800 265 800 241 802 240 845 245 889 251 891 252 915 212 940 174 941 173 999 173 1059 172 1090 188 1090 217 1090 238 1111 247 1160 247 1199 247 1205 250 1210 272 1215 295 1222 297 1263 300L1310 303 1310 208C1310 155 1308 112 1306 112 1304 112 1234 105 1151 97 1014 83 983 83 853 97 773 105 703 112 699 112 694 112 690 155 690 208L690 302 729 302Z"/>
+              <path d="M791 2780 835 2778 835 2692C835 2645 831 2590 827 2570 820 2536 817 2532 804 2544 795 2551 781 2570 772 2586 754 2622 730 2764 740 2775 744 2780 767 2783 791 2780Z"/>
+              <path d="M772 2460C788 2450 795 2434 796 2411 797 2392 802 2367 808 2355 817 2340 817 2333 807 2330 801 2327 828 2323 868 2323L941 2322 960 2280C974 2249 980 2215 980 2156 980 2081 982 2073 999 2072 1015 2072 1018 2083 1022 2160 1025 2208 1034 2265 1043 2285L1059 2323 1127 2322C1185 2322 1196 2326 1197 2340 1202 2397 1215 2443 1231 2459 1247 2472 1250 2473 1250 2462 1250 2453 1246 2443 1240 2436 1219 2416 1202 2083 1190 1424 1178 838 1180 281 1192 289 1197 291 1200 283 1200 271 1200 252 1196 250 1165 256 1116 266 1093 256 1082 223 1072 196 1070 194 1000 195 951 195 930 198 933 206 935 212 926 227 912 240 892 259 881 262 851 257L815 252 814 965C812 1873 792 2413 759 2448 741 2466 750 2475 772 2460Z"/>
+              <path d="M847 2831 852 3092 1000 3092 1148 3093 1153 2835C1156 2693 1161 2563 1165 2547 1171 2520 1168 2515 1133 2499 1058 2463 924 2464 861 2504 834 2520 829 2527 835 2546 840 2558 845 2685 847 2831Z"/>
+              <path d="M1000 3232 1110 3233 1110 3173C1110 3129 1106 3114 1094 3109 1065 3098 915 3101 902 3115 895 3121 890 3150 890 3179L890 3233 1000 3232Z"/>
+              <path d="M1000 3473 1090 3473 1090 3377 1090 3282 1000 3283 910 3282 910 3377 910 3473 1000 3473Z"/>
+              <path d="M960 5353 990 5353 990 5279C990 5207 1001 5175 1014 5209 1017 5218 1020 5253 1020 5289 1020 5351 1021 5353 1045 5353L1070 5353 1070 5237 1070 5123 1007 5123C972 5123 940 5126 937 5130 933 5133 930 5185 930 5245L930 5352 960 5353Z"/>
+              <path data-hover_object="" class="f1_svg_hover_object" id="f1_svg_rr_suspension_struct" d="M1152 5222C1170 5223 1263 5218 1358 5213 1453 5208 1538 5207 1545 5209 1552 5212 1561 5231 1565 5251 1568 5271 1578 5299 1585 5313 1598 5336 1599 5326 1600 5216L1600 5093 1567 5092C1542 5093 1525 5084 1499 5057 1481 5038 1466 5020 1468 5017 1470 5014 1448 4992 1421 4967 1393 4942 1371 4918 1373 4914 1374 4909 1360 4894 1342 4878 1325 4863 1313 4846 1317 4841 1320 4835 1318 4833 1313 4836 1307 4840 1296 4835 1289 4826 1277 4812 1277 4810 1290 4817 1298 4822 1285 4807 1260 4785 1208 4737 1200 4735 1200 4765 1201 4780 1248 4840 1330 4933 1459 5076 1480 5112 1442 5128 1433 5131 1362 5137 1285 5139 1208 5141 1139 5146 1132 5149 1126 5150 1120 5168 1120 5187 1120 5221 1122 5223 1152 5222Z"/>
+              <path d="M1295 5353 1470 5353 1470 5287 1470 5223 1422 5223C1396 5223 1318 5226 1247 5230L1120 5235 1120 5295 1120 5353 1295 5353Z"/>
+              <path d="M1209 2781C1233 2782 1257 2780 1261 2775 1278 2759 1244 2604 1215 2567 1200 2547 1186 2533 1184 2536 1175 2544 1162 2661 1164 2717L1165 2777 1209 2781Z"/>
+              <path data-hover_object="" class="f1_svg_hover_object" id="f1_svg_fr_suspension_struct" d="M1214 1262C1216 1262 1286 1271 1370 1283 1559 1308 1590 1323 1590 1385 1590 1416 1545 1453 1372 1557L1210 1655 1211 1703C1212 1730 1217 1752 1222 1752 1226 1752 1332 1684 1455 1602L1680 1452 1680 1342 1680 1230 1642 1236C1614 1241 1610 1240 1625 1232 1640 1225 1635 1223 1601 1227 1569 1229 1560 1229 1571 1221 1581 1214 1571 1212 1536 1216 1503 1218 1492 1217 1501 1210 1511 1204 1497 1202 1460 1206 1421 1209 1411 1208 1425 1201 1439 1194 1432 1193 1400 1197 1366 1201 1359 1201 1370 1192 1381 1183 1373 1182 1336 1186 1306 1188 1293 1186 1301 1181 1312 1175 1310 1172 1294 1173 1282 1172 1258 1169 1241 1167L1210 1160 1210 1212C1210 1239 1212 1263 1214 1262Z"/>
+              <path d="M1224 1630C1251 1618 1555 1429 1562 1418 1586 1382 1575 1380 1400 1387 1247 1394 1230 1393 1230 1379 1230 1370 1225 1363 1220 1362 1214 1362 1210 1414 1210 1499 1210 1608 1213 1634 1224 1630Z"/>
+              <path d="M1236 2232C1240 2249 1410 2346 1418 2338 1421 2335 1416 2324 1408 2315 1358 2255 1301 2112 1280 1989 1269 1927 1253 1903 1224 1903 1218 1902 1228 2204 1236 2232Z"/>
+              <path data-hover_object="" class="f1_svg_hover_object" id="f1_svg_fr_suspension" d="M1410 1373C1503 1372 1580 1368 1580 1364 1580 1349 1546 1325 1520 1318 1482 1309 1253 1303 1246 1309 1243 1313 1240 1329 1240 1344L1240 1373 1410 1373Z"/>
+              <path d="M1450 251 1581 251 1574 206C1570 176 1571 162 1579 162 1585 162 1590 179 1590 200 1590 220 1594 242 1598 247 1606 258 1719 296 1726 290 1730 286 1711 160 1706 154 1704 152 1640 145 1564 137 1487 129 1401 120 1372 117L1320 112 1320 181 1320 250 1450 251Z"/>
+              <path d="M1413 349C1477 348 1529 355 1583 371 1644 389 1664 391 1675 383 1687 373 1692 375 1701 396 1713 421 1769 447 1830 454 1854 458 1855 454 1855 407 1855 364 1852 357 1835 357 1824 357 1810 367 1804 381L1792 403 1771 376C1760 362 1750 346 1750 341 1750 328 1720 302 1705 302 1698 302 1690 312 1687 325 1684 344 1682 343 1675 315 1670 292 1661 283 1641 280 1627 276 1613 275 1611 277 1609 279 1618 297 1630 316 1642 336 1647 352 1642 352 1636 352 1621 333 1608 311L1585 267 1452 264 1320 262 1320 304 1320 348 1413 349Z"/>
+              <path d="M1336 426C1345 429 1382 432 1418 432 1477 432 1565 447 1637 468 1658 475 1660 471 1660 439L1660 404 1582 384C1485 358 1401 349 1355 357 1325 362 1320 367 1320 391 1320 408 1327 422 1336 426Z"/>
+              <path d="M1351 2045C1356 2066 1366 2081 1372 2079 1379 2079 1387 2100 1392 2132 1407 2234 1421 2281 1435 2276 1443 2273 1461 2296 1484 2338 1523 2408 1526 2417 1508 2406 1501 2403 1500 2403 1504 2411 1508 2418 1515 2420 1520 2417 1524 2414 1545 2435 1565 2462 1585 2490 1606 2509 1611 2506 1616 2504 1608 2487 1594 2469 1563 2432 1479 2262 1486 2251 1489 2247 1500 2242 1510 2243 1528 2243 1528 2241 1509 2198 1489 2152 1456 2007 1445 1911L1438 1852 1381 1852 1324 1852 1332 1931C1337 1972 1346 2025 1351 2045Z"/>
+              <path d="M1409 484C1497 491 1551 511 1616 557L1665 593 1668 552C1670 528 1668 506 1663 501 1645 483 1530 460 1431 455 1345 450 1328 451 1332 463 1335 473 1360 480 1409 484Z"/>
+              <path d="M1372 2585C1385 2593 1444 2608 1505 2616 1565 2626 1627 2635 1642 2638 1667 2643 1670 2641 1670 2620 1670 2605 1661 2589 1647 2580 1595 2546 1488 2422 1532 2449 1540 2452 1542 2451 1537 2446 1532 2441 1525 2437 1521 2438 1516 2437 1492 2415 1467 2387L1421 2337 1420 2368C1420 2388 1427 2403 1441 2411 1481 2435 1440 2523 1387 2522 1374 2522 1360 2526 1357 2530 1343 2544 1351 2573 1372 2585Z"/>
+              <path d="M1471 4849C1535 4929 1562 4934 1621 4873L1660 4833 1745 4833 1830 4833 1830 4748C1830 4701 1826 4662 1821 4663 1804 4663 1779 4694 1763 4735 1747 4774 1725 4793 1691 4793 1681 4793 1669 4799 1667 4806 1664 4813 1661 4811 1661 4801 1660 4788 1667 4783 1683 4783 1716 4782 1742 4761 1755 4722 1762 4703 1780 4679 1798 4668 1822 4652 1829 4640 1830 4615 1830 4578 1823 4578 1782 4616 1770 4626 1760 4631 1760 4625 1760 4618 1776 4603 1795 4591 1821 4573 1830 4561 1830 4540 1830 4509 1822 4510 1782 4546 1769 4558 1760 4561 1760 4553 1760 4547 1776 4532 1795 4522 1822 4505 1830 4495 1830 4471 1830 4439 1823 4439 1782 4476 1770 4487 1760 4491 1760 4484 1760 4478 1776 4463 1795 4451 1821 4434 1830 4421 1830 4401 1830 4384 1827 4372 1823 4373 1819 4373 1803 4385 1787 4401 1771 4416 1759 4420 1762 4413 1764 4405 1781 4389 1798 4378 1820 4364 1829 4350 1830 4331 1830 4296 1820 4296 1786 4329 1772 4344 1760 4351 1760 4344 1760 4339 1776 4320 1795 4306 1816 4289 1830 4269 1830 4256 1830 4226 1815 4226 1785 4258 1771 4270 1760 4278 1760 4273 1760 4268 1776 4251 1795 4235L1830 4208 1830 3429C1830 2999 1827 2652 1822 2656 1818 2661 1815 2687 1815 2716L1815 2767 1761 2763 1707 2760 1714 2798C1744 2977 1740 3227 1706 3393 1691 3461 1477 4280 1441 4403 1426 4453 1422 4503 1421 4627L1420 4784 1471 4849Z"/>
+              <path d="M1550 5613C1577 5613 1600 5612 1600 5610 1600 5609 1591 5590 1580 5569 1570 5548 1558 5511 1554 5486 1550 5459 1543 5443 1534 5443 1523 5442 1520 5419 1520 5328 1520 5258 1516 5212 1510 5213 1504 5213 1500 5286 1500 5413L1500 5613 1550 5613Z"/>
+              <path data-hover_object="" class="f1_svg_hover_object" id="f1_svg_rr_tyre" d="M1635 5553 1655 5575 1660 5402 1666 5228 1668 5405 1670 5582 1703 5588C1721 5591 1802 5592 1883 5591 2007 5588 2032 5584 2047 5570 2063 5554 2065 5523 2068 5239 2071 4934 2071 4928 2050 4906 2030 4884 2023 4883 1851 4883L1673 4882 1649 4909C1617 4943 1612 4997 1614 5294 1615 5516 1616 5531 1635 5553Z"/>
+              <path d="M1660 2565C1681 2584 1711 2605 1725 2612 1762 2632 1782 2603 1773 2544 1768 2506 1770 2500 1782 2505 1796 2510 1796 2503 1783 2445 1775 2408 1764 2374 1760 2369 1755 2364 1739 2364 1724 2370 1703 2377 1685 2397 1658 2448 1637 2487 1620 2521 1620 2525 1620 2528 1638 2546 1660 2565Z"/>
+              <path d="M1690 612C1697 623 1723 629 1790 630 1872 634 1880 632 1880 616 1880 584 1867 576 1790 549 1749 536 1707 520 1697 517 1682 511 1680 516 1680 553 1680 577 1685 604 1690 612Z"/>
+              <path data-hover_object="" class="f1_svg_hover_object" id="f1_svg_fr_tyre" d="M1703 1591C1709 1604 1731 1624 1750 1634 1781 1650 1803 1652 1928 1650 2057 1647 2073 1645 2086 1629 2107 1600 2107 995 2086 966 2073 950 2057 947 1918 945 1769 942 1764 943 1735 966L1705 990 1699 1139C1689 1427 1690 1566 1703 1591Z"/>
+              <path d="M1916 430C1921 472 1955 523 1979 522 1996 522 1990 180 1972 174 1963 171 1959 200 1958 295L1956 417 1953 295C1950 182 1948 172 1930 172 1917 172 1910 181 1907 201 1902 229 1907 360 1916 430Z"/>
+            </svg>
+          </div>
+          <div class="" id="right_car_grid">
+            <div class="" id="right_front_car_grid">
+              <div class="bottom_section_grid_element" id="fr_tyre_temp" data-hover_object="f1_svg_fr_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Temperature</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="fr_tyre_temp_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="fr_tyre_wear" data-hover_object="f1_svg_fr_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Wear</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="fr_tyre_wear_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="fr_tyre_pressure" data-hover_object="f1_svg_fr_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Pressure</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="fr_tyre_pressure_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bottom_section_grid_element" id="fr_break_temp" data-hover_object="f1_svg_fr_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Break Temperature</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="fr_break_temp_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="fr_tyre_damage" data-hover_object="f1_svg_fr_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Damage</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="fr_tyre_damage_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="fr_suspension_position" data-hover_object="f1_svg_fr_suspension_struct">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Suspension Position</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="fr_suspension_position_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="" id=""></div>
+            <div class="" id="right_back_car_grid">
+              <div class="bottom_section_grid_element" id="br_break_temp" data-hover_object="f1_svg_rr_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Break Temperature</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="br_break_temp_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="br_tyre_damage" data-hover_object="f1_svg_rr_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Damage</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="br_tyre_damage_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="br_suspension_position" data-hover_object="f1_svg_rr_suspension_struct">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Suspension Position</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="br_suspension_position_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bottom_section_grid_element" id="br_tyre_temp" data-hover_object="f1_svg_rr_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Temperature</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="br_tyre_temp_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="br_tyre_wear" data-hover_object="f1_svg_rr_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Wear</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="br_tyre_wear_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom_section_grid_element" id="br_tyre_pressure" data-hover_object="f1_svg_rr_tyre">
+                <div class="bottom_section_grid_element_container">
+                  <div class="bottom_section_grid_element_title">
+                    <span class="bottom_section_grid_element_title_text">Tyre Pressure</span>
+                  </div>
+                  <div class="bottom_section_grid_element_data">
+                    <span class="bottom_section_grid_element_data_text" id="br_tyre_pressure_data">N/A</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- End wheels tires brakes suspension -->
+      </div>
     </div>
-
-    <!-- Start history data -->
-
-    <!-- Lap selection -->
-    <div class="lap_selection" id="">
-      <div id="lap_selection_left">
-        <div class="lap_selection_left_class" id="lap_selection_text_span_container">
-          <span id="lap_selection_left_text">Select Lap</span>
-        </div>
-        <div class="lap_selection_element_class" id="select_lap_container">
-          <span class="select_lap_nav_button">ALL</span>
-        </div>
-      </div>
-      <!-- <div id="page_title_right"></div> -->
-    </div>
-    <!-- end lap selection -->
-
-    <!-- sgr or speed gear rpm, graph -->
-    <div class="live_page_element" id="sgr_graph">
-      <div class="graph_title">
-        <div class="graph_title_left">
-          <span class="graph_title_text speed_title_text">Speed </span>
-          <span class="graph_title_text">| </span>
-          <span class="graph_title_text gear_title_text">Gear </span>
-          <span class="graph_title_text">| </span>
-          <span class="graph_title_text rpm_title_text">RPM</span>
-        </div>
-        <div class- "graph_title_right">
-          <span class="graph_title_control"></span>
-        </div>
-      </div>
-
-      <div id="sgr_graph_container">
-        <canvas id="sgr_graph_canvas"></canvas>
-      </div>
-    </div>
-    <!-- End sgr graph -->
-
-    <!-- Time Map Standings -->
-    <div class="" id="History_mid_section_grid">
-
-      <div class="mid_section_grid_element" id="history_grid_time"></div>
-      <div class="mid_section_grid_element" id="history_grid_map"></div>
-      <div class="mid_section_grid_element" id="history_grid_standing"></div>
-
-    </div>
-    <!-- End time Map Standings -->
-
-    <!-- wheels tires brakes suspension -->
-    <div class="" id="History_bottom_section_grid">
-      <div class="" id="left_car_grid">
-        <div class="" id="left_front_car_grid">
-          <div class="bottom_section_grid_element" id="fl_type_pressure"></div>
-          <div class="bottom_section_grid_element" id="fl_tyre_wear"></div>
-          <div class="bottom_section_grid_element" id="fl_tyre_temp"></div>
-
-          <div class="bottom_section_grid_element" id="fl_suspension_position"></div>
-          <div class="bottom_section_grid_element" id="fl_type_damage"></div>
-          <div class="bottom_section_grid_element" id="fl_break_temp"></div>
-        </div>
-        <div class="" id=""></div>
-        <div class="" id="left_back_car_grid">
-          <div class="bottom_section_grid_element" id="bl_suspension_position"></div>
-          <div class="bottom_section_grid_element" id="bl_tyre_damage"></div>
-          <div class="bottom_section_grid_element" id="bl_break_temp"></div>
-
-          <div class="bottom_section_grid_element" id="bl_type_pressure"></div>
-          <div class="bottom_section_grid_element" id="bl_tyre_wear"></div>
-          <div class="bottom_section_grid_element" id="bl_tyre_temp"></div>
-        </div>
-      </div>
-      <div class="" id="F1_car_graphic"></div>
-      <div class="" id="right_car_grid">
-        <div class="" id="right_front_car_grid">
-          <div class="bottom_section_grid_element" id="fr_tyre_temp"></div>
-          <div class="bottom_section_grid_element" id="fr_tyre_wear"></div>
-          <div class="bottom_section_grid_element" id="fr_tyre_pressure"></div>
-
-          <div class="bottom_section_grid_element" id="fr_break_temp"></div>
-          <div class="bottom_section_grid_element" id="fr_tyre_damage"></div>
-          <div class="bottom_section_grid_element" id="fr_suspension_position"></div>
-        </div>
-        <div class="" id=""></div>
-        <div class="" id="right_back_car_grid">
-          <div class="bottom_section_grid_element" id="br_break_temp"></div>
-          <div class="bottom_section_grid_element" id="br_tyre_damage"></div>
-          <div class="bottom_section_grid_element" id="br_suspension_position"></div>
-
-          <div class="bottom_section_grid_element" id="br_tyre_temp"></div>
-          <div class="bottom_section_grid_element" id="br_tyre_wear"></div>
-          <div class="bottom_section_grid_element" id="br_tyre_pressure"></div>
-        </div>
-      </div>
-    </div>
-    <!-- End wheels tires brakes suspension -->
 
     <!-- end history data -->
   </div>
 
 
 </body>
-<script src="/web/js/history_dashboard.js"></script>
+<script src="/web/js/redis_history_dashboard.js"></script>
 
 </html>
