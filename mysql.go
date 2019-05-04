@@ -1175,7 +1175,7 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 
 		query_history_sessionData := `SELECT m_totalLaps, m_trackId FROM session_data WHERE session_data.session_uid = ?;`
 
-		query_history_lapData := `SELECT frame_identifier, m_lastLapTime, m_currentLapTime, m_bestLapTime, m_sector1Time, m_sector2Time, m_currentLapNum, m_sector FROM lap_data
+		query_history_lapData := `SELECT frame_identifier, m_lastLapTime, m_currentLapTime, m_bestLapTime, m_sector1Time, m_sector2Time, m_currentLapNum, m_sector, m_penalties FROM lap_data
 		INNER JOIN car_lap_data on lap_data.id = car_lap_data.lap_data_id WHERE lap_data.session_uid = ? and car_lap_data.car_index = ?;`
 
 		query_history_telemetryData := `SELECT frame_identifier, m_speed, m_throttle, m_brake, m_gear, m_engineRPM, m_brakesTemperature_rl, m_brakesTemperature_rr, m_brakesTemperature_fl,
@@ -1258,7 +1258,7 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 			var select_from_database structs.History_lapData
 
 			err = lapData_rows.Scan(&select_from_database.Frame_identifier, &select_from_database.M_lastLapTime, &select_from_database.M_currentLapTime, &select_from_database.M_bestLapTime,
-				&select_from_database.M_sector1Time, &select_from_database.M_sector2Time, &select_from_database.M_currentLapNum, &select_from_database.M_sector)
+				&select_from_database.M_sector1Time, &select_from_database.M_sector2Time, &select_from_database.M_currentLapNum, &select_from_database.M_sector, &select_from_database.M_penalties)
 			if err != nil {
 				log.Println(err)
 			}

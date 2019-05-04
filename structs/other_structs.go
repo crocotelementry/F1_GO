@@ -113,7 +113,12 @@ type List_sessionData struct {
 type List_lapData struct {
 	M_header PacketHeader
 
-	LapData []History_lapData
+	LapData []LapData_lap_group
+}
+
+type LapData_lap_group struct {
+	LapNum       int
+	LapData_list []History_lapData
 }
 
 type List_telemetryData struct {
@@ -159,7 +164,9 @@ type History_lapData struct {
 	M_bestLapTime    float32
 	M_sector1Time    float32
 	M_sector2Time    float32
+	M_currentLapNum  int
 	M_sector         int
+	M_penalties      int
 }
 
 type History_telemetryData struct {

@@ -17,6 +17,46 @@ var save_popup_open = document.getElementById("save_session_nav_button");
 var save_popup_close = document.getElementById("save_close");
 
 
+// Get our html elements for our history data
+// times
+var total_time = document.getElementById('total_time');
+var current_lap = document.getElementById('current_lap');
+var last_lap = document.getElementById('last_lap');
+var best_lap = document.getElementById('best_lap');
+var penalties = document.getElementById('penalties');
+var current_sector = document.getElementById('current_sector');
+var sector_1 = document.getElementById('sector_1');
+var sector_2 = document.getElementById('sector_2');
+var sector_3 = document.getElementById('sector_3');
+// tires
+var fl_tyre_pressure_data = document.getElementById('fl_tyre_pressure_data');
+var fl_tyre_wear_data = document.getElementById('fl_tyre_wear_data');
+var fl_tyre_temp_data = document.getElementById('fl_tyre_temp_data');
+var fl_suspension_position_data = document.getElementById('fl_suspension_position_data');
+var fl_tyre_damage_data = document.getElementById('fl_tyre_damage_data');
+var fl_break_temp_data = document.getElementById('fl_break_temp_data');
+
+var bl_suspension_position_data = document.getElementById('bl_suspension_position_data');
+var bl_tyre_damage_data = document.getElementById('bl_tyre_damage_data');
+var bl_break_temp_data = document.getElementById('bl_break_temp_data');
+var bl_tyre_pressure_data = document.getElementById('bl_tyre_pressure_data');
+var bl_tyre_wear_data = document.getElementById('bl_tyre_wear_data');
+var bl_tyre_temp_data = document.getElementById('bl_tyre_temp_data');
+
+var fr_tyre_temp_data = document.getElementById('fr_tyre_temp_data');
+var fr_tyre_wear_data = document.getElementById('fr_tyre_wear_data');
+var fr_tyre_pressure_data = document.getElementById('fr_tyre_pressure_data');
+var fr_break_temp_data = document.getElementById('fr_break_temp_data');
+var fr_tyre_damage_data = document.getElementById('fr_tyre_damage_data');
+var fr_suspension_position_data = document.getElementById('fr_suspension_position_data');
+
+var br_break_temp_data = document.getElementById('br_break_temp_data');
+var br_tyre_damage_data = document.getElementById('br_tyre_damage_data');
+var br_suspension_position_data = document.getElementById('br_suspension_position_data');
+var br_tyre_temp_data = document.getElementById('br_tyre_temp_data');
+var br_tyre_wear_data = document.getElementById('br_tyre_wear_data');
+var br_tyre_pressure_data = document.getElementById('br_tyre_pressure_data');
+
 // Get the popup_mysql_progress stuff
 // saving packet
 var popup_progress_title;
@@ -25,6 +65,49 @@ var popup_progress_canvas_container;
 var popup_progress_ctx;
 var progress_multiplier;
 
+// get the sgr_canvas container height and width
+var sgr_canvas_container = document.getElementById("sgr_graph_container");
+
+// Get the html5 canvas element and set the width to the chart width
+var sgr_canvas = document.getElementById("sgr_graph_canvas");
+sgr_canvas.width = sgr_canvas_container.offsetWidth;
+sgr_canvas.height = sgr_canvas_container.offsetHeight;
+
+// Get the canvas '2d' object, which can be used to draw text, lines, boxes, circles, and more - on the canvas.
+// We do this since canvas doesnt actually let us draw, it is simply a container
+var sgr_ctx = sgr_canvas.getContext("2d");
+var sgr_canvas_height = sgr_canvas.height;
+var sgr_canvas_width = sgr_canvas.width;
+
+// create an array that will hold our sgr chart data, with the first data point being "0,0" equivilent
+var sgr_chart_data = [];
+var speed_data_array = [];
+var gear_data_array = [];
+var rpm_data_array = [];
+
+// create an array that will hold our sgr chart data queue, with the first data point being "0,0" equivilent
+// var sgr_chart_data_queue = [];
+
+// Set a variable that will be how many points can be contained in the chart.
+// For now, set this to the width of the chart so each input from our websocket will be a pixel apart
+// Adjust as required
+var chart_points_number = sgr_canvas_width;
+
+// translate the 0,0 point from the top left of the canvas to the bottom left of the canvas
+sgr_ctx.translate(0, sgr_canvas_height);
+sgr_ctx.scale(1, -1);
+
+// set the chart line_widths
+sgr_ctx.lineWidth = "2";
+
+// sgr uses three color lines, need function to draw and array to hold colors
+sgr_line_colors = ["#8D8741", "#7FDBFF", "#FF4136"];
+
+// Multiplier to convert graph items to a form where the min value is the bottom of the canvas and the
+// max is the top of the canvas.
+var speed_multiplier = sgr_canvas_height / 350;
+var rpm_multiplier = sgr_canvas_height / 12500;
+var gear_multiplier = sgr_canvas_height / 8;
 
 
 
@@ -52,6 +135,27 @@ window.onclick = function(event) {
     save_popup.style.display = "none";
   }
 }
+
+
+
+var bottom_section_grid_element_hover_over = function() {
+  var svg_to_color = this.dataset.hover_object;
+  document.getElementById(svg_to_color).setAttribute("fill", "#8D8741");;
+}
+
+var bottom_section_grid_element_hover_out = function() {
+  var svg_to_color = this.dataset.hover_object;
+  document.getElementById(svg_to_color).setAttribute("fill", "none");
+}
+
+var bottom_section_grid_elements = document.getElementsByClassName("bottom_section_grid_element");
+
+for (var i = 0; i < bottom_section_grid_elements.length; i++) {
+  bottom_section_grid_elements[i].addEventListener("mouseover", bottom_section_grid_element_hover_over);
+  bottom_section_grid_elements[i].addEventListener("mouseout", bottom_section_grid_element_hover_out);
+}
+
+
 
 
 function save_to_database(uid) {
@@ -145,11 +249,77 @@ function add_lap_to_lap_selector(lap_num) {
 
   var new_span = document.createElement('span');
   new_span.className = 'select_lap_nav_button';
-  new_span.innerHTML = lap_num;
+  new_span.innerHTML = "Lap " + lap_num;
 
   new_div.appendChild(new_span);
 
   document.getElementById('lap_selection_left').appendChild(new_div);
+}
+
+// Function to convert the time we are given in the UDP packets in seconds to a standard time format
+function intTime_to_timeTime(time_str) {
+  let step_one = time_str / 60;
+  let time_min = Math.floor(step_one);
+
+  let step_two = (step_one - time_min) * 60;
+  let time_sec = Math.floor(step_two);
+
+  let step_three = (step_two - time_sec) * 60;
+  let time_mil = Math.floor(step_three);
+
+
+
+  if (time_min < 10) {
+    time_min = "0" + time_min.toString();
+  } else {
+    time_min = time_min.toString();
+  }
+
+  if (time_sec < 10) {
+    time_sec = "0" + time_sec.toString();
+  } else {
+    time_sec = time_sec.toString();
+  }
+
+  if (time_mil < 10) {
+    time_mil = "0" + time_mil.toString();
+  } else {
+    time_mil = time_mil.toString();
+  }
+
+  return time_min + ":" + time_sec + ":" + time_mil
+}
+
+// Function to clear the chart before redraw
+function clear_chart(chart_ctx, chart_canvas) {
+  chart_ctx.clearRect(0, 0, chart_canvas.width, chart_canvas.height);
+}
+
+// Function to draw throttle_brake chart
+function draw_sgr_chart(speed_data, gear_data, rev_data, chart_ctx, chart_canvas) {
+  // First we need to clear the chart
+  // chart_shift(throttle_data, new_graph_points);
+  // chart_shift(brake_data, new_graph_points);
+  clear_chart(chart_ctx, chart_canvas);
+
+  var data_array = [speed_data, gear_data, rev_data];
+
+  for (data_array_position = 0; data_array_position < 3; data_array_position++) {
+
+    var previous_points = data_array[data_array_position][0];
+    chart_ctx.moveTo(previous_points[0], previous_points[1]);
+    chart_ctx.strokeStyle = sgr_line_colors[data_array_position];
+    chart_ctx.beginPath();
+
+    for (x = 0; x < data_array[data_array_position].length; x++) {
+      chart_ctx.moveTo(previous_points[0], previous_points[1]);
+      chart_ctx.lineTo(data_array[data_array_position][x][0], data_array[data_array_position][x][1]);
+      previous_points = data_array[data_array_position][x];
+    };
+
+    chart_ctx.stroke();
+
+  };
 }
 
 
@@ -286,6 +456,13 @@ ws.onmessage = function(event) {
 
     case 40:
       console.log("packet 40 motionData recieved");
+
+      fl_suspension_position_data.innerHTML = data.MotionData[data.MotionData.length - 1].Suspension_position_fl;
+      bl_suspension_position_data.innerHTML = data.MotionData[data.MotionData.length - 1].Suspension_position_rl;
+      fr_suspension_position_data.innerHTML = data.MotionData[data.MotionData.length - 1].Suspension_position_fr;
+      br_suspension_position_data.innerHTML = data.MotionData[data.MotionData.length - 1].Suspension_position_rr;
+
+
       break;
 
     case 41:
@@ -299,18 +476,67 @@ ws.onmessage = function(event) {
       console.log("packet 42 lapData recieved");
 
       for (lap = 0; lap < data.LapData.length; lap++) {
-        console.log("lap ", data.LapData[lap].LapNum, " is included")
-        add_lap_to_lap_selector(data.LapData[lap].LapNum)
+        console.log("lap ", data.LapData[lap].LapNum, " is included");
+        add_lap_to_lap_selector(data.LapData[lap].LapNum);
       }
+
+
+
+
+
+      packets_in_last_lap = data.LapData[data.LapData.length - 1].LapData_list.length;
+      // packets_in_last_lap = last_lap_packets.LapData_list[last_lap_packets.LapData_listlength-1]
+
+      total_time.innerHTML = intTime_to_timeTime(data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_currentLapTime);
+      current_lap.innerHTML = intTime_to_timeTime(data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_currentLapTime);
+      last_lap.innerHTML = intTime_to_timeTime(data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_lastLapTime);
+      best_lap.innerHTML = intTime_to_timeTime(data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_bestLapTime);
+      penalties.innerHTML = data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_penalties;
+      current_sector.innerHTML = data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_sector;
+      sector_1.innerHTML = intTime_to_timeTime(data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_sector1Time);
+      sector_2.innerHTML = intTime_to_timeTime(data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_sector2Time);
+      sector_3.innerHTML = intTime_to_timeTime(0);
 
       break;
 
     case 46:
       console.log("packet 46 telemetryData recieved");
+
+      for (packet = 0; packet < data.TelemetryData.length; packet++) {
+        speed_data_array.push([packet, data.TelemetryData[packet].M_speed * speed_multiplier]);
+        gear_data_array.push([packet, data.TelemetryData[packet].M_gear * gear_multiplier]);
+        rpm_data_array.push([packet, data.TelemetryData[packet].M_engineRPM * rpm_multiplier]);
+      }
+
+      draw_sgr_chart(speed_data_array, gear_data_array, rpm_data_array, sgr_ctx, sgr_canvas)
+
+      fl_tyre_pressure_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresPressure_fl;
+      fl_tyre_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresSurfaceTemperature_fl;
+      fl_break_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_brakesTemperature_fl;
+      bl_break_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_brakesTemperature_rl;
+      bl_tyre_pressure_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresPressure_rl;
+      bl_tyre_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresSurfaceTemperature_rl;
+      fr_tyre_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresSurfaceTemperature_fr;
+      fr_tyre_pressure_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresPressure_fr;
+      fr_break_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_brakesTemperature_fr;
+      br_break_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_brakesTemperature_rr;
+      br_tyre_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresSurfaceTemperature_rr;
+      br_tyre_pressure_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresPressure_rr;
+
       break;
 
     case 47:
       console.log("packet 47 statusData recieved");
+
+      fl_tyre_wear_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresWear_fl;
+      fl_tyre_damage_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresDamage_fl;
+      bl_tyre_damage_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresDamage_rl;
+      bl_tyre_wear_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresWear_rl;
+      fr_tyre_wear_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresWear_fr;
+      fr_tyre_damage_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresDamage_fr;
+      br_tyre_damage_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresDamage_rr;
+      br_tyre_wear_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresWear_rr;
+
       break;
 
   }
