@@ -28,6 +28,79 @@ var current_sector = document.getElementById('current_sector');
 var sector_1 = document.getElementById('sector_1');
 var sector_2 = document.getElementById('sector_2');
 var sector_3 = document.getElementById('sector_3');
+// standings
+var standing_color_1 = document.getElementById('standing_color_1');
+var standing_color_2 = document.getElementById('standing_color_2');
+var standing_color_3 = document.getElementById('standing_color_3');
+var standing_color_4 = document.getElementById('standing_color_4');
+var standing_color_5 = document.getElementById('standing_color_5');
+var standing_color_6 = document.getElementById('standing_color_6');
+var standing_color_7 = document.getElementById('standing_color_7');
+var standing_color_8 = document.getElementById('standing_color_8');
+var standing_color_9 = document.getElementById('standing_color_9');
+var standing_color_10 = document.getElementById('standing_color_10');
+var standing_color_11 = document.getElementById('standing_color_11');
+var standing_color_12 = document.getElementById('standing_color_12');
+var standing_color_13 = document.getElementById('standing_color_13');
+var standing_color_14 = document.getElementById('standing_color_14');
+var standing_color_15 = document.getElementById('standing_color_15');
+var standing_color_16 = document.getElementById('standing_color_16');
+var standing_color_17 = document.getElementById('standing_color_17');
+var standing_color_18 = document.getElementById('standing_color_18');
+var standing_color_19 = document.getElementById('standing_color_19');
+var standing_color_20 = document.getElementById('standing_color_20');
+
+var standing_name_1 = document.getElementById('standing_name_1');
+var standing_name_2 = document.getElementById('standing_name_2');
+var standing_name_3 = document.getElementById('standing_name_3');
+var standing_name_4 = document.getElementById('standing_name_4');
+var standing_name_5 = document.getElementById('standing_name_5');
+var standing_name_6 = document.getElementById('standing_name_6');
+var standing_name_7 = document.getElementById('standing_name_7');
+var standing_name_8 = document.getElementById('standing_name_8');
+var standing_name_9 = document.getElementById('standing_name_9');
+var standing_name_10 = document.getElementById('standing_name_10');
+var standing_name_11 = document.getElementById('standing_name_11');
+var standing_name_12 = document.getElementById('standing_name_12');
+var standing_name_13 = document.getElementById('standing_name_13');
+var standing_name_14 = document.getElementById('standing_name_14');
+var standing_name_15 = document.getElementById('standing_name_15');
+var standing_name_16 = document.getElementById('standing_name_16');
+var standing_name_17 = document.getElementById('standing_name_17');
+var standing_name_18 = document.getElementById('standing_name_18');
+var standing_name_19 = document.getElementById('standing_name_19');
+var standing_name_20 = document.getElementById('standing_name_20');
+
+var standing_time_1 = document.getElementById('standing_time_1');
+var standing_time_2 = document.getElementById('standing_time_2');
+var standing_time_3 = document.getElementById('standing_time_3');
+var standing_time_4 = document.getElementById('standing_time_4');
+var standing_time_5 = document.getElementById('standing_time_5');
+var standing_time_6 = document.getElementById('standing_time_6');
+var standing_time_7 = document.getElementById('standing_time_7');
+var standing_time_8 = document.getElementById('standing_time_8');
+var standing_time_9 = document.getElementById('standing_time_9');
+var standing_time_10 = document.getElementById('standing_time_10');
+var standing_time_11 = document.getElementById('standing_time_11');
+var standing_time_12 = document.getElementById('standing_time_12');
+var standing_time_13 = document.getElementById('standing_time_13');
+var standing_time_14 = document.getElementById('standing_time_14');
+var standing_time_15 = document.getElementById('standing_time_15');
+var standing_time_16 = document.getElementById('standing_time_16');
+var standing_time_17 = document.getElementById('standing_time_17');
+var standing_time_18 = document.getElementById('standing_time_18');
+var standing_time_19 = document.getElementById('standing_time_19');
+var standing_time_20 = document.getElementById('standing_time_20');
+
+
+var standing_color_list = [standing_color_1, standing_color_2, standing_color_3, standing_color_4, standing_color_5, standing_color_6, standing_color_7, standing_color_8, standing_color_9, standing_color_10, standing_color_11, standing_color_12, standing_color_13, standing_color_14, standing_color_15, standing_color_16, standing_color_17, standing_color_18, standing_color_19, standing_color_20]
+
+var standing_name_list = [standing_name_1, standing_name_2, standing_name_3, standing_name_4, standing_name_5, standing_name_6, standing_name_7, standing_name_8, standing_name_9, standing_name_10, standing_name_11, standing_name_12, standing_name_13, standing_name_14, standing_name_15, standing_name_16, standing_name_17, standing_name_18, standing_name_19, standing_name_20];
+
+var standing_time_list = [standing_time_1, standing_time_2, standing_time_3, standing_time_4, standing_time_5, standing_time_6, standing_time_7, standing_time_8, standing_time_9, standing_time_10, standing_time_11, standing_time_12, standing_time_13, standing_time_14, standing_time_15, standing_time_16, standing_time_17, standing_time_18, standing_time_19, standing_time_20];
+
+var participantData_dict = [];
+
 // tires
 var fl_tyre_pressure_data = document.getElementById('fl_tyre_pressure_data');
 var fl_tyre_wear_data = document.getElementById('fl_tyre_wear_data');
@@ -499,6 +572,18 @@ ws.onmessage = function(event) {
 
       break;
 
+    case 44:
+      console.log("packet 44 participantData recieved")
+
+      participantData_dict = data.ParticipantData;
+
+      // for(racer=0; racer<data.ParticipantData.length; racer++){
+      //   participantData_dict = data.ParticipantData[racer];
+      //   // standing_name_list[racer].innerHTML = data.ParticipantData[racer].M_name;
+      // }
+
+      break;
+
     case 46:
       console.log("packet 46 telemetryData recieved");
 
@@ -539,5 +624,20 @@ ws.onmessage = function(event) {
 
       break;
 
+    case 48:
+      console.log("packet 48 standings data recieved")
+
+      for (racer_standing = 0; racer_standing < participantData_dict.length; racer_standing++) {
+        standing_color_list[racer_standing].innerHTML = participantData_dict[data.StandingsData[data.StandingsData.length - 1].Standings[racer_standing] - 1].M_raceNumber;
+        standing_name_list[racer_standing].innerHTML = participantData_dict[data.StandingsData[data.StandingsData.length - 1].Standings[racer_standing] - 1].M_name;
+        standing_time_list[racer_standing].innerHTML = intTime_to_timeTime(data.LapDataTimes[data.LapDataTimes.length - 1].Times[racer_standing]);
+      }
+
+      break;
+
+      // case 49:
+      //   console.log("packet 49 times data recieved");
+      //
+      //   break;
   }
 }

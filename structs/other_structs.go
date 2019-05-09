@@ -63,14 +63,6 @@ type Save_to_database_status struct {
 	Total_packets  int
 }
 
-// type RaceSpeed_struct_mini struct {
-// 	raceSpeed [1000]interface {}
-// }
-
-// type CatchUp_data struct {
-// 	Data []int
-// }
-
 type CatchUp_dashboard_struct struct {
 	M_header PacketHeader // Header
 
@@ -121,6 +113,12 @@ type LapData_lap_group struct {
 	LapData_list []History_lapData
 }
 
+type List_participantData struct {
+	M_header PacketHeader
+
+	ParticipantData []History_participantData
+}
+
 type List_telemetryData struct {
 	M_header PacketHeader
 
@@ -132,6 +130,19 @@ type List_statusData struct {
 
 	StatusData []History_statusData
 }
+
+type List_standingsData struct {
+	M_header PacketHeader
+
+	StandingsData []History_standingsData
+	LapDataTimes  []History_lapDataTimes
+}
+
+// type List_lapDataTimes struct{
+// 	M_header PacketHeader
+//
+// 	LapDataTimes []History_lapDataTimes
+// }
 
 type History_motionData struct {
 	Frame_identifier       int
@@ -145,28 +156,34 @@ type History_motionData struct {
 }
 
 type History_sessionData struct {
-	Mrame_identifier       int
-	Suspension_position_rl float32
-	Suspension_position_rr float32
-	Suspension_position_fl float32
-	Suspension_position_fr float32
-	M_worldPositionX       float32
-	M_worldPositionY       float32
-	M_worldPositionZ       float32
-	M_totalLaps            int
-	M_trackId              int
+	Mrame_identifier int
+	M_totalLaps      int
+	M_trackId        int
 }
 
 type History_lapData struct {
-	Frame_identifier int
-	M_lastLapTime    float32
-	M_currentLapTime float32
-	M_bestLapTime    float32
-	M_sector1Time    float32
-	M_sector2Time    float32
-	M_currentLapNum  int
-	M_sector         int
-	M_penalties      int
+	Frame_identifier      int
+	M_lastLapTime         float32
+	M_currentLapTime      float32
+	M_bestLapTime         float32
+	M_sector1Time         float32
+	M_sector2Time         float32
+	M_carPosition         int
+	M_currentLapNum       int
+	M_sector              int
+	M_penalties           int
+	M_currentLapTime_list []int
+}
+
+type History_participantData struct {
+	M_numCars      int
+	Car_index      int
+	M_aiControlled int
+	M_driverId     int
+	M_teamId       int
+	M_raceNumber   int
+	M_nationality  int
+	M_name         string
 }
 
 type History_telemetryData struct {
@@ -203,4 +220,15 @@ type History_statusData struct {
 	M_tyresDamage_rr int
 	M_tyresDamage_fl int
 	M_tyresDamage_fr int
+}
+
+type History_standingsData struct {
+	Frame_identifier int
+	// Index_list History_standingsData_indexList
+	Standings []int
+}
+
+type History_lapDataTimes struct {
+	Frame_identifier int
+	Times            []float64
 }

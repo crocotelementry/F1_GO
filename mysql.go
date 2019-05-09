@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -1175,8 +1176,11 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 
 		query_history_sessionData := `SELECT m_totalLaps, m_trackId FROM session_data WHERE session_data.session_uid = ?;`
 
-		query_history_lapData := `SELECT frame_identifier, m_lastLapTime, m_currentLapTime, m_bestLapTime, m_sector1Time, m_sector2Time, m_currentLapNum, m_sector, m_penalties FROM lap_data
+		query_history_lapData := `SELECT frame_identifier, m_lastLapTime, m_currentLapTime, m_bestLapTime, m_sector1Time, m_sector2Time, m_carPosition ,m_currentLapNum, m_sector, m_penalties FROM lap_data
 		INNER JOIN car_lap_data on lap_data.id = car_lap_data.lap_data_id WHERE lap_data.session_uid = ? and car_lap_data.car_index = ?;`
+
+		query_history_participantData := `SELECT m_numCars, car_index, m_aiControlled, m_driverId, m_teamId, m_raceNumber, m_nationality, m_name from participant_data INNER JOIN car_participant_data
+		on participant_data.id = car_participant_data.participant_data_id WHERE participant_data.session_uid = ? GROUP BY car_index;`
 
 		query_history_telemetryData := `SELECT frame_identifier, m_speed, m_throttle, m_brake, m_gear, m_engineRPM, m_brakesTemperature_rl, m_brakesTemperature_rr, m_brakesTemperature_fl,
 		m_brakesTemperature_fr, m_tyresSurfaceTemperature_rl, m_tyresSurfaceTemperature_rr, m_tyresSurfaceTemperature_fl, m_tyresSurfaceTemperature_fr, m_tyresPressure_rl,
@@ -1186,6 +1190,10 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 		query_history_statusData := `SELECT frame_identifier, m_maxRPM, m_idleRPM, m_maxGears, m_tyresWear_rl, m_tyresWear_rr, m_tyresWear_fl, m_tyresWear_fr,
 		m_tyresDamage_rl, m_tyresDamage_rr, m_tyresDamage_fl, m_tyresDamage_fr FROM status_data INNER JOIN car_status_data ON status_data.id = car_status_data.status_data_id
 		WHERE status_data.session_uid = ? and car_status_data.car_index = ?;`
+
+		query_history_standings := `SELECT lap_data.frame_identifier, GROUP_CONCAT(car_lap_data.m_carPosition ORDER BY car_lap_data.car_index SEPARATOR ', ') FROM lap_data INNER JOIN car_lap_data on car_lap_data.lap_data_id = lap_data.id WHERE lap_data.session_uid = ? GROUP BY frame_identifier;`
+
+		query_history_lapDataTimes := `SELECT lap_data.frame_identifier, GROUP_CONCAT(car_lap_data.m_currentLapTime ORDER BY car_lap_data.car_index SEPARATOR ', ') from lap_data INNER JOIN car_lap_data on car_lap_data.lap_data_id = lap_data.id WHERE lap_data.session_uid = ? GROUP BY frame_identifier;`
 
 		motionData_rows, err := db.Query(query_history_motionData, chosen_session_uid, user_index)
 		if err != nil {
@@ -1198,6 +1206,11 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 		}
 
 		lapData_rows, err := db.Query(query_history_lapData, chosen_session_uid, user_index)
+		if err != nil {
+			log.Println("participantData_rows", err)
+		}
+
+		participantData_rows, err := db.Query(query_history_participantData, chosen_session_uid)
 		if err != nil {
 			log.Println("lapData_rows", err)
 		}
@@ -1212,19 +1225,35 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 			log.Println("statusData_rows", err)
 		}
 
+		standingsData_rows, err := db.Query(query_history_standings, chosen_session_uid)
+		if err != nil {
+			log.Println("standingsData_rows", err)
+		}
+
+		lapDataTimes_rows, err := db.Query(query_history_lapDataTimes, chosen_session_uid)
+		if err != nil {
+			log.Println("lapDataTimes_rows", err)
+		}
+
 		defer func() {
 			motionData_rows.Close()
 			sessionData_rows.Close()
 			lapData_rows.Close()
+			participantData_rows.Close()
 			telemetryData_rows.Close()
 			statusData_rows.Close()
+			standingsData_rows.Close()
+			lapDataTimes_rows.Close()
 		}()
 
 		List_motionData := []structs.History_motionData{}
 		List_sessionData := []structs.History_sessionData{}
 		List_lapData := []structs.LapData_lap_group{}
+		List_participantData := []structs.History_participantData{}
 		List_telemetryData := []structs.History_telemetryData{}
 		List_statusData := []structs.History_statusData{}
+		List_standingsData := []structs.History_standingsData{}
+		List_lapDataTimes := []structs.History_lapDataTimes{}
 
 		// setup temp list_lapdata
 		Temp_list_lapData := []structs.History_lapData{}
@@ -1258,7 +1287,7 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 			var select_from_database structs.History_lapData
 
 			err = lapData_rows.Scan(&select_from_database.Frame_identifier, &select_from_database.M_lastLapTime, &select_from_database.M_currentLapTime, &select_from_database.M_bestLapTime,
-				&select_from_database.M_sector1Time, &select_from_database.M_sector2Time, &select_from_database.M_currentLapNum, &select_from_database.M_sector, &select_from_database.M_penalties)
+				&select_from_database.M_sector1Time, &select_from_database.M_sector2Time, &select_from_database.M_carPosition, &select_from_database.M_currentLapNum, &select_from_database.M_sector, &select_from_database.M_penalties)
 			if err != nil {
 				log.Println(err)
 			}
@@ -1290,6 +1319,18 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 
 		List_lapData = append(List_lapData, LapData_lap_group_struct)
 
+		for participantData_rows.Next() {
+			var select_from_database structs.History_participantData
+
+			err = participantData_rows.Scan(&select_from_database.M_numCars, &select_from_database.Car_index, &select_from_database.M_aiControlled, &select_from_database.M_driverId,
+				&select_from_database.M_teamId, &select_from_database.M_raceNumber, &select_from_database.M_nationality, &select_from_database.M_name)
+			if err != nil {
+				log.Println(err)
+			}
+
+			List_participantData = append(List_participantData, select_from_database)
+		}
+
 		for telemetryData_rows.Next() {
 			var select_from_database structs.History_telemetryData
 
@@ -1318,6 +1359,62 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 			List_statusData = append(List_statusData, select_from_database)
 		}
 
+		for standingsData_rows.Next() {
+			var select_from_database structs.History_standingsData
+
+			var index_return string
+
+			var index_list []string
+
+			index_list_int := []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+			err = standingsData_rows.Scan(&select_from_database.Frame_identifier, &index_return)
+			if err != nil {
+				log.Println(err)
+			}
+
+			index_list = strings.Split(index_return, ", ")
+
+			for i := 0; i < List_participantData[0].M_numCars+2; i++ {
+				index_list_int[i], err = strconv.Atoi(index_list[i])
+				if err != nil {
+					log.Println(err)
+				}
+			}
+
+			select_from_database.Standings = index_list_int
+
+			List_standingsData = append(List_standingsData, select_from_database)
+		}
+
+		for lapDataTimes_rows.Next() {
+			var select_from_database structs.History_lapDataTimes
+
+			var times_return string
+
+			var times_return_list []string
+
+			times_list_int := []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+			err = lapDataTimes_rows.Scan(&select_from_database.Frame_identifier, &times_return)
+			if err != nil {
+				log.Println(err)
+			}
+
+			times_return_list = strings.Split(times_return, ", ")
+
+			for i := 0; i < List_participantData[0].M_numCars+2; i++ {
+				times_list_int[i], err = strconv.ParseFloat(times_return_list[i], 64)
+				if err != nil {
+					log.Println(err)
+				}
+			}
+
+			select_from_database.Times = times_list_int
+
+			List_lapDataTimes = append(List_lapDataTimes, select_from_database)
+		}
+
 		List_motionData_struct := structs.List_motionData{
 			M_header: structs.PacketHeader{
 				M_packetId: 40,
@@ -1339,6 +1436,13 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 			LapData: List_lapData,
 		}
 
+		List_participantData_struct := structs.List_participantData{
+			M_header: structs.PacketHeader{
+				M_packetId: 44,
+			},
+			ParticipantData: List_participantData,
+		}
+
 		List_telemetryData_struct := structs.List_telemetryData{
 			M_header: structs.PacketHeader{
 				M_packetId: 46,
@@ -1352,6 +1456,21 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 			},
 			StatusData: List_statusData,
 		}
+
+		List_standingsData_struct := structs.List_standingsData{
+			M_header: structs.PacketHeader{
+				M_packetId: 48,
+			},
+			StandingsData: List_standingsData,
+			LapDataTimes:  List_lapDataTimes,
+		}
+
+		// List_lapDataTimes_struct := structs.List_lapDataTimes{
+		// 	M_header: structs.PacketHeader {
+		// 		M_packetId: 49,
+		// 	},
+		// 	LapDataTimes: List_lapDataTimes,
+		// }
 
 		List_motionData_marshaled, err := json.Marshal(List_motionData_struct)
 		if err != nil {
@@ -1368,6 +1487,11 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 			fmt.Println(err)
 		}
 
+		List_participantData_marshaled, err := json.Marshal(List_participantData_struct)
+		if err != nil {
+			fmt.Println(err)
+		}
+
 		List_telemetryData_marshaled, err := json.Marshal(List_telemetryData_struct)
 		if err != nil {
 			fmt.Println(err)
@@ -1377,6 +1501,16 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 		if err != nil {
 			fmt.Println(err)
 		}
+
+		List_standingsData_marshaled, err := json.Marshal(List_standingsData_struct)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		// List_lapDataTimes_marshaled, err := json.Marshal(List_lapDataTimes_struct)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
 
 		// Write our JSON formatted F1 UDP packet struct to our websocket
 		if err := c.conn.WriteMessage(websocket.TextMessage, List_motionData_marshaled); err != nil {
@@ -1394,6 +1528,11 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 			return
 		}
 
+		if err := c.conn.WriteMessage(websocket.TextMessage, List_participantData_marshaled); err != nil {
+			log.Println("", c.conn.RemoteAddr(), " ", "error with writing List_participantData_marshaled to history analyze websocket")
+			return
+		}
+
 		if err := c.conn.WriteMessage(websocket.TextMessage, List_telemetryData_marshaled); err != nil {
 			log.Println("", c.conn.RemoteAddr(), " ", "error with writing List_telemetryData_marshaled to history analyze websocket")
 			return
@@ -1403,6 +1542,16 @@ func (c *Client) analyzeHistoryFromMysql(chosen_session_uid uint64) {
 			log.Println("", c.conn.RemoteAddr(), " ", "error with writing List_statusData_marshaled to history analyze websocket")
 			return
 		}
+
+		if err := c.conn.WriteMessage(websocket.TextMessage, List_standingsData_marshaled); err != nil {
+			log.Println("", c.conn.RemoteAddr(), " ", "error with writing List_standingsData_marshaled to history analyze websocket")
+			return
+		}
+
+		// if err := c.conn.WriteMessage(websocket.TextMessage, List_lapDataTimes_marshaled); err != nil {
+		// 	log.Println("", c.conn.RemoteAddr(), " ", "error with writing List_lapDataTimes_marshaled to history analyze websocket")
+		// 	return
+		// }
 
 	}
 

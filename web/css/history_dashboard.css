@@ -433,6 +433,10 @@ body {
   padding-right: 1em;
 } */
 
+.standing_color {
+  text-align: center;
+}
+
 .element_title {
   border-radius: 6px;
   background-color: #254E58;
@@ -545,6 +549,7 @@ body {
   background-color: #254E58;
   /* border-style: solid; */
   border-top: solid;
+  border-width: 1.5px;
   border-color: #112D32;
   display: grid;
   grid: 100% / calc(100% / 10) calc((100% / 10) * 3) calc((100% / 10) * 3) calc((100% / 10) * 3);
