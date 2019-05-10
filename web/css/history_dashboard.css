@@ -395,9 +395,13 @@ body {
   margin-left: 1em;
   margin-right: 1em;
   margin-bottom: 1em;
-  height: 12em;
+  height: calc(100% - 4em);
   width: -webkit-fill-available;
   /* background-color: transparent; */
+}
+
+#sgr_graph_canvas, #sgr_graph_playback_line_canvas {
+  position: absolute;
 }
 
 #History_mid_section_grid {

@@ -146,11 +146,19 @@ var sgr_canvas = document.getElementById("sgr_graph_canvas");
 sgr_canvas.width = sgr_canvas_container.offsetWidth;
 sgr_canvas.height = sgr_canvas_container.offsetHeight;
 
+var sgr_playback_line_canvas = document.getElementById("sgr_graph_playback_line_canvas");
+sgr_playback_line_canvas.width = sgr_canvas.width;
+sgr_playback_line_canvas.height = sgr_canvas.height;
+
 // Get the canvas '2d' object, which can be used to draw text, lines, boxes, circles, and more - on the canvas.
 // We do this since canvas doesnt actually let us draw, it is simply a container
 var sgr_ctx = sgr_canvas.getContext("2d");
 var sgr_canvas_height = sgr_canvas.height;
 var sgr_canvas_width = sgr_canvas.width;
+
+var sgr_playback_line_ctx = sgr_playback_line_canvas.getContext("2d");
+var sgr_playback_line_canvas_height = sgr_playback_line_canvas.height;
+var sgr_playback_line_canvas_width = sgr_playback_line_canvas.width;
 
 // create an array that will hold our sgr chart data, with the first data point being "0,0" equivilent
 var sgr_chart_data = [];
@@ -170,11 +178,18 @@ var chart_points_number = sgr_canvas_width;
 sgr_ctx.translate(0, sgr_canvas_height);
 sgr_ctx.scale(1, -1);
 
+sgr_playback_line_ctx.translate(0, sgr_playback_line_canvas_height);
+sgr_playback_line_ctx.scale(1, -1);
+
 // set the chart line_widths
 sgr_ctx.lineWidth = "2";
 
+sgr_playback_line_ctx.lineWidth = "2";
+
 // sgr uses three color lines, need function to draw and array to hold colors
 sgr_line_colors = ["#8D8741", "#7FDBFF", "#FF4136"];
+
+sgr_playback_line_color = "white";
 
 // Multiplier to convert graph items to a form where the min value is the bottom of the canvas and the
 // max is the top of the canvas.
@@ -182,6 +197,36 @@ var speed_multiplier = sgr_canvas_height / 350;
 var rpm_multiplier = sgr_canvas_height / 12500;
 var gear_multiplier = sgr_canvas_height / 8;
 
+
+// global variable for the frame we are currently playing back from
+var playback_id = 0;
+var frame_number = 0;
+var play_back_speed_normal = 1;
+var play_back_speed_half = 2;
+var play_back_speed_quarter = 4;
+
+// Arrays that will hold our history data
+var motionData_array = [];
+var sessionData_array = [];
+var lapData_array = [];
+var participantData_array = [];
+var telemetryData_array = [];
+var statusData_array = [];
+var standings_standingsData_array = [];
+var standings_lapDataTimes_array = [];
+
+
+// Holds data for track id and total laps
+var totalLaps
+var trackId
+
+// placeholders for our data Arrays
+var packet_number_motionData_array = 0;
+var packet_number_lapData_array = 0;
+var packet_number_telemetryData_array = 0;
+var packet_number_statusData_array = 0;
+var packet_number_standings_standingsData_array = 0;
+var packet_number_standings_lapDataTimes_array = 0;
 
 
 // Things that have to do with the select session from database popup
@@ -395,6 +440,107 @@ function draw_sgr_chart(speed_data, gear_data, rev_data, chart_ctx, chart_canvas
   };
 }
 
+// sgr_playback_line_ctx
+function draw_graph_playback_line(packet_number, chart_ctx, chart_canvas) {
+  clear_chart(chart_ctx, chart_canvas);
+
+  chart_ctx.strokeStyle = sgr_playback_line_color;
+
+  chart_ctx.beginPath();
+  chart_ctx.moveTo(packet_number, 0);
+  chart_ctx.lineTo(packet_number, chart_canvas.height);
+
+  chart_ctx.stroke();
+}
+
+
+function playback(frame) {
+  frame_number++;
+
+  // motionData_array
+  // There is a packet for every frame
+  if (motionData_array[packet_number_motionData_array].Frame_identifier == frame_number) {
+    fl_suspension_position_data.innerHTML = motionData_array[packet_number_motionData_array].Suspension_position_fl;
+    bl_suspension_position_data.innerHTML = motionData_array[packet_number_motionData_array].Suspension_position_rl;
+    fr_suspension_position_data.innerHTML = motionData_array[packet_number_motionData_array].Suspension_position_fr;
+    br_suspension_position_data.innerHTML = motionData_array[packet_number_motionData_array].Suspension_position_rr;
+
+    packet_number_motionData_array++;
+  }
+
+  // lapData_array
+  if (lapData_array[0][packet_number_lapData_array].Frame_identifier == frame_number) {
+    total_time.innerHTML = intTime_to_timeTime(lapData_array[0][packet_number_lapData_array].M_currentLapTime);
+    current_lap.innerHTML = intTime_to_timeTime(lapData_array[0][packet_number_lapData_array].M_currentLapTime);
+    last_lap.innerHTML = intTime_to_timeTime(lapData_array[0][packet_number_lapData_array].M_lastLapTime);
+    best_lap.innerHTML = intTime_to_timeTime(lapData_array[0][packet_number_lapData_array].M_bestLapTime);
+    penalties.innerHTML = lapData_array[0][packet_number_lapData_array].M_penalties;
+    current_sector.innerHTML = lapData_array[0][packet_number_lapData_array].M_sector;
+    sector_1.innerHTML = intTime_to_timeTime(lapData_array[0][packet_number_lapData_array].M_sector1Time);
+    sector_2.innerHTML = intTime_to_timeTime(lapData_array[0][packet_number_lapData_array].M_sector2Time);
+    sector_3.innerHTML = intTime_to_timeTime(0);
+
+    packet_number_lapData_array++;
+  }
+
+  // telemetryData_array
+  if (telemetryData_array[packet_number_telemetryData_array].Frame_identifier == frame_number) {
+    fl_tyre_pressure_data.innerHTML = telemetryData_array[packet_number_telemetryData_array].M_tyresPressure_fl;
+    fl_tyre_temp_data.innerHTML = telemetryData_array[packet_number_telemetryData_array].M_tyresSurfaceTemperature_fl;
+    fl_break_temp_data.innerHTML = telemetryData_array[packet_number_telemetryData_array].M_brakesTemperature_fl;
+    bl_break_temp_data.innerHTML = telemetryData_array[packet_number_telemetryData_array].M_brakesTemperature_rl;
+    bl_tyre_pressure_data.innerHTML = telemetryData_array[packet_number_telemetryData_array].M_tyresPressure_rl;
+    bl_tyre_temp_data.innerHTML = telemetryData_array[packet_number_telemetryData_array].M_tyresSurfaceTemperature_rl;
+    fr_tyre_temp_data.innerHTML = telemetryData_array[packet_number_telemetryData_array].M_tyresSurfaceTemperature_fr;
+    fr_tyre_pressure_data.innerHTML = telemetryData_array[packet_number_telemetryData_array].M_tyresPressure_fr;
+    fr_break_temp_data.innerHTML = telemetryData_array[packet_number_telemetryData_array].M_brakesTemperature_fr;
+    br_break_temp_data.innerHTML = telemetryData_array[packet_number_telemetryData_array].M_brakesTemperature_rr;
+    br_tyre_temp_data.innerHTML = telemetryData_array[packet_number_telemetryData_array].M_tyresSurfaceTemperature_rr;
+    br_tyre_pressure_data.innerHTML = telemetryData_array[packet_number_telemetryData_array].M_tyresPressure_rr;
+
+
+    draw_graph_playback_line(packet_number_telemetryData_array, sgr_playback_line_ctx, sgr_canvas)
+
+    packet_number_telemetryData_array++;
+  }
+
+  // statusData_array
+  if (statusData_array[packet_number_statusData_array].Frame_identifier == frame_number) {
+    fl_tyre_wear_data.innerHTML = statusData_array[packet_number_statusData_array].M_tyresWear_fl;
+    fl_tyre_damage_data.innerHTML = statusData_array[packet_number_statusData_array].M_tyresDamage_fl;
+    bl_tyre_damage_data.innerHTML = statusData_array[packet_number_statusData_array].M_tyresDamage_rl;
+    bl_tyre_wear_data.innerHTML = statusData_array[packet_number_statusData_array].M_tyresWear_rl;
+    fr_tyre_wear_data.innerHTML = statusData_array[packet_number_statusData_array].M_tyresWear_fr;
+    fr_tyre_damage_data.innerHTML = statusData_array[packet_number_statusData_array].M_tyresDamage_fr;
+    br_tyre_damage_data.innerHTML = statusData_array[packet_number_statusData_array].M_tyresDamage_rr;
+    br_tyre_wear_data.innerHTML = statusData_array[packet_number_statusData_array].M_tyresWear_rr;
+
+    packet_number_statusData_array++;
+  }
+
+  // standings_standingsData_array
+  // standings_lapDataTimes_array
+  if (standings_standingsData_array[packet_number_standings_standingsData_array].Frame_identifier == frame_number) {
+    for (racer_standing = 0; racer_standing < participantData_array.length; racer_standing++) {
+      standing_color_list[racer_standing].innerHTML = participantData_array[standings_standingsData_array[packet_number_standings_standingsData_array].Standings[racer_standing] - 1].M_raceNumber;
+      standing_name_list[racer_standing].innerHTML = participantData_array[standings_standingsData_array[packet_number_standings_standingsData_array].Standings[racer_standing] - 1].M_name;
+      standing_time_list[racer_standing].innerHTML = intTime_to_timeTime(standings_lapDataTimes_array[packet_number_standings_lapDataTimes_array].Times[racer_standing - 1]);
+    }
+
+    packet_number_standings_standingsData_array++;
+    packet_number_standings_lapDataTimes_array++;
+  }
+
+}
+
+function start_playback(frame_number, play_back_speed_multiplier) {
+  play_back_speed = 14.2857 / play_back_speed_multiplier;
+  playback_id = setInterval(playback, play_back_speed, frame_number);
+}
+
+function stop_playback() {
+  clearInterval(playback_id);
+}
 
 // connect to websocket
 var ws = new WebSocket('ws:localhost:8080/history/ws');
@@ -529,20 +675,15 @@ ws.onmessage = function(event) {
 
     case 40:
       console.log("packet 40 motionData recieved");
-
-      fl_suspension_position_data.innerHTML = data.MotionData[data.MotionData.length - 1].Suspension_position_fl;
-      bl_suspension_position_data.innerHTML = data.MotionData[data.MotionData.length - 1].Suspension_position_rl;
-      fr_suspension_position_data.innerHTML = data.MotionData[data.MotionData.length - 1].Suspension_position_fr;
-      br_suspension_position_data.innerHTML = data.MotionData[data.MotionData.length - 1].Suspension_position_rr;
-
-
+      motionData_array = data.MotionData;
       break;
 
     case 41:
       console.log("packet 41 sessionData recieved");
       // Get amount of laps from this to then set up everything else
-      console.log("amount of laps is:", data.SessionData[(data.SessionData).length - 1].M_totalLaps)
-
+      // console.log("amount of laps is:", data.SessionData[(data.SessionData).length -1].M_totalLaps)
+      totalLaps = data.SessionData[(data.SessionData).length - 1].M_totalLaps;
+      trackId = data.SessionData[(data.SessionData).length - 1].M_trackId;
       break;
 
     case 42:
@@ -551,93 +692,44 @@ ws.onmessage = function(event) {
       for (lap = 0; lap < data.LapData.length; lap++) {
         console.log("lap ", data.LapData[lap].LapNum, " is included");
         add_lap_to_lap_selector(data.LapData[lap].LapNum);
+        lapData_array.push(data.LapData[lap].LapData_list);
       }
 
-
-
-
-
-      packets_in_last_lap = data.LapData[data.LapData.length - 1].LapData_list.length;
-      // packets_in_last_lap = last_lap_packets.LapData_list[last_lap_packets.LapData_listlength-1]
-
-      total_time.innerHTML = intTime_to_timeTime(data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_currentLapTime);
-      current_lap.innerHTML = intTime_to_timeTime(data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_currentLapTime);
-      last_lap.innerHTML = intTime_to_timeTime(data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_lastLapTime);
-      best_lap.innerHTML = intTime_to_timeTime(data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_bestLapTime);
-      penalties.innerHTML = data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_penalties;
-      current_sector.innerHTML = data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_sector;
-      sector_1.innerHTML = intTime_to_timeTime(data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_sector1Time);
-      sector_2.innerHTML = intTime_to_timeTime(data.LapData[data.LapData.length - 1].LapData_list[packets_in_last_lap - 1].M_sector2Time);
-      sector_3.innerHTML = intTime_to_timeTime(0);
-
+      console.log("lapData_array", lapData_array);
       break;
 
     case 44:
       console.log("packet 44 participantData recieved")
-
       participantData_dict = data.ParticipantData;
-
-      // for(racer=0; racer<data.ParticipantData.length; racer++){
-      //   participantData_dict = data.ParticipantData[racer];
-      //   // standing_name_list[racer].innerHTML = data.ParticipantData[racer].M_name;
-      // }
-
+      participantData_array = data.ParticipantData;
+      console.log("participantData_array", participantData_array);
       break;
 
     case 46:
       console.log("packet 46 telemetryData recieved");
-
       for (packet = 0; packet < data.TelemetryData.length; packet++) {
         speed_data_array.push([packet, data.TelemetryData[packet].M_speed * speed_multiplier]);
         gear_data_array.push([packet, data.TelemetryData[packet].M_gear * gear_multiplier]);
         rpm_data_array.push([packet, data.TelemetryData[packet].M_engineRPM * rpm_multiplier]);
       }
-
       draw_sgr_chart(speed_data_array, gear_data_array, rpm_data_array, sgr_ctx, sgr_canvas)
 
-      fl_tyre_pressure_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresPressure_fl;
-      fl_tyre_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresSurfaceTemperature_fl;
-      fl_break_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_brakesTemperature_fl;
-      bl_break_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_brakesTemperature_rl;
-      bl_tyre_pressure_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresPressure_rl;
-      bl_tyre_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresSurfaceTemperature_rl;
-      fr_tyre_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresSurfaceTemperature_fr;
-      fr_tyre_pressure_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresPressure_fr;
-      fr_break_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_brakesTemperature_fr;
-      br_break_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_brakesTemperature_rr;
-      br_tyre_temp_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresSurfaceTemperature_rr;
-      br_tyre_pressure_data.innerHTML = data.TelemetryData[data.TelemetryData.length - 1].M_tyresPressure_rr;
-
+      telemetryData_array = data.TelemetryData;
       break;
 
     case 47:
       console.log("packet 47 statusData recieved");
-
-      fl_tyre_wear_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresWear_fl;
-      fl_tyre_damage_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresDamage_fl;
-      bl_tyre_damage_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresDamage_rl;
-      bl_tyre_wear_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresWear_rl;
-      fr_tyre_wear_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresWear_fr;
-      fr_tyre_damage_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresDamage_fr;
-      br_tyre_damage_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresDamage_rr;
-      br_tyre_wear_data.innerHTML = data.StatusData[data.StatusData.length - 1].M_tyresWear_rr;
-
+      statusData_array = data.StatusData;
+      console.log("statusData_array", statusData_array);
       break;
 
     case 48:
       console.log("packet 48 standings data recieved")
+      standings_standingsData_array = data.StandingsData;
+      standings_lapDataTimes_array = data.LapDataTimes;
 
-      for (racer_standing = 0; racer_standing < participantData_dict.length; racer_standing++) {
-        standing_color_list[racer_standing].innerHTML = participantData_dict[data.StandingsData[data.StandingsData.length - 1].Standings[racer_standing] - 1].M_raceNumber;
-        standing_name_list[racer_standing].innerHTML = participantData_dict[data.StandingsData[data.StandingsData.length - 1].Standings[racer_standing] - 1].M_name;
-        standing_time_list[racer_standing].innerHTML = intTime_to_timeTime(data.LapDataTimes[data.LapDataTimes.length - 1].Times[racer_standing]);
-      }
-
+      start_playback(frame_number, play_back_speed_normal);
       break;
 
-      // case 49:
-      //   console.log("packet 49 times data recieved");
-      //
-      //   break;
   }
 }
