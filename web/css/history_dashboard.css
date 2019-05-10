@@ -366,13 +366,42 @@ body {
   border-color: grey;
 }
 
-.graph_title {
+#graph_title {
   /* width: 100%; */
   height: 1em;
   margin-top: 1em;
   /* margin-bottom: 1vw; */
   margin-left: 1em;
   margin-right: 1em;
+}
+
+.graph_title_text {
+  display: inline-block;
+}
+
+.graph_title_text_right {
+  border-radius: 6px;
+  background-color: #254E58;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+  padding-top: 0.2em;
+  margin-left: 0.5em;
+  padding-bottom: 0.2em;
+  border-style: solid;
+  border-color: #254E58;
+  cursor: pointer;
+}
+
+.graph_title_text_right:hover {
+  background-color: #8D8741;
+}
+
+.selected_playback_option {
+  border-color: #8D8741;
+}
+
+#graph_title_right {
+  float: right;
 }
 
 .speed_title_text {

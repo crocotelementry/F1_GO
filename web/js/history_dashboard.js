@@ -17,6 +17,16 @@ var save_popup_open = document.getElementById("save_session_nav_button");
 var save_popup_close = document.getElementById("save_close");
 
 
+// playback options
+var playback_start_button = document.getElementById('playback_start');
+var playback_stop_button = document.getElementById('playback_stop');
+var playback_speed_normal_button = document.getElementById('playback_speed_normal');
+var playback_speed_half_button = document.getElementById('playback_speed_half');
+var playback_speed_quarter_button = document.getElementById('playback_speed_quarter');
+
+var previous_popup_speed = 0;
+var playback_speed_list = [playback_speed_normal_button, playback_speed_half_button, playback_speed_quarter_button];
+
 // Get our html elements for our history data
 // times
 var total_time = document.getElementById('total_time');
@@ -201,9 +211,7 @@ var gear_multiplier = sgr_canvas_height / 8;
 // global variable for the frame we are currently playing back from
 var playback_id = 0;
 var frame_number = 0;
-var play_back_speed_normal = 1;
-var play_back_speed_half = 2;
-var play_back_speed_quarter = 4;
+var selected_play_back_speed = 1;
 
 // Arrays that will hold our history data
 var motionData_array = [];
@@ -271,6 +279,81 @@ var bottom_section_grid_elements = document.getElementsByClassName("bottom_secti
 for (var i = 0; i < bottom_section_grid_elements.length; i++) {
   bottom_section_grid_elements[i].addEventListener("mouseover", bottom_section_grid_element_hover_over);
   bottom_section_grid_elements[i].addEventListener("mouseout", bottom_section_grid_element_hover_out);
+}
+
+
+
+playback_start_button.onclick = function() {
+  playback_start_button.classList.add('selected_playback_option');
+  playback_stop_button.classList.remove('selected_playback_option');
+
+  if (playback_id == 0) {
+    console.log("playback_started");
+    start_playback(frame_number, selected_play_back_speed);
+  }
+}
+
+playback_stop_button.onclick = function() {
+  playback_stop_button.classList.add('selected_playback_option');
+  playback_start_button.classList.remove('selected_playback_option');
+  stop_playback();
+}
+
+playback_speed_normal_button.onclick = function() {
+  playback_speed_normal_button.classList.add('selected_playback_option');
+  // playback_speed_list[previous_popup_speed].classList.remove('selected_playback_option');
+
+  if (selected_play_back_speed != 1) {
+    playback_speed_list[previous_popup_speed].classList.remove('selected_playback_option');
+  }
+
+  if (playback_id != 0 && selected_play_back_speed != 1) {
+    stop_playback();
+    selected_play_back_speed = 1;
+    start_playback(frame_number, selected_play_back_speed);
+  } else {
+    selected_play_back_speed = 1;
+  }
+
+  previous_popup_speed = 0;
+}
+
+playback_speed_half_button.onclick = function() {
+  playback_speed_half_button.classList.add('selected_playback_option');
+  // playback_speed_list[previous_popup_speed].classList.remove('selected_playback_option');
+
+  if (selected_play_back_speed != 2) {
+    playback_speed_list[previous_popup_speed].classList.remove('selected_playback_option');
+  }
+
+  if (playback_id != 0 && selected_play_back_speed != 2) {
+    stop_playback();
+    selected_play_back_speed = 2;
+    start_playback(frame_number, selected_play_back_speed);
+  } else {
+    selected_play_back_speed = 2;
+  }
+
+  previous_popup_speed = 1;
+}
+
+playback_speed_quarter_button.onclick = function() {
+  playback_speed_quarter_button.classList.add('selected_playback_option');
+  // playback_speed_list[previous_popup_speed].classList.remove('selected_playback_option');
+
+  if (selected_play_back_speed != 4) {
+    playback_speed_list[previous_popup_speed].classList.remove('selected_playback_option');
+  }
+
+  if (playback_id != 0 && selected_play_back_speed != 4) {
+    stop_playback();
+    selected_play_back_speed = 4;
+    start_playback(frame_number, selected_play_back_speed);
+  } else {
+    selected_play_back_speed = 4;
+  }
+
+  previous_popup_speed = 2;
 }
 
 
@@ -534,12 +617,14 @@ function playback(frame) {
 }
 
 function start_playback(frame_number, play_back_speed_multiplier) {
-  play_back_speed = 14.2857 / play_back_speed_multiplier;
+  play_back_speed = 14.2857 * play_back_speed_multiplier;
+  console.log("playback_speed", play_back_speed);
   playback_id = setInterval(playback, play_back_speed, frame_number);
 }
 
 function stop_playback() {
   clearInterval(playback_id);
+  playback_id = 0;
 }
 
 // connect to websocket
@@ -727,8 +812,6 @@ ws.onmessage = function(event) {
       console.log("packet 48 standings data recieved")
       standings_standingsData_array = data.StandingsData;
       standings_lapDataTimes_array = data.LapDataTimes;
-
-      start_playback(frame_number, play_back_speed_normal);
       break;
 
   }

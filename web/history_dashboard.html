@@ -215,16 +215,20 @@
 
         <!-- sgr or speed gear rpm, graph -->
         <div class="live_page_element" id="sgr_graph">
-          <div class="graph_title">
-            <div class="graph_title_left">
-              <span class="graph_title_text speed_title_text">Speed </span>
-              <span class="graph_title_text">| </span>
-              <span class="graph_title_text gear_title_text">Gear </span>
-              <span class="graph_title_text">| </span>
-              <span class="graph_title_text rpm_title_text">RPM</span>
+          <div id="graph_title">
+            <div class="graph_title_text" id="graph_title_left">
+              <span class="graph_title_text_left speed_title_text">Speed </span>
+              <span class="graph_title_text_left">| </span>
+              <span class="graph_title_text_left gear_title_text">Gear </span>
+              <span class="graph_title_text_left">| </span>
+              <span class="graph_title_text_left rpm_title_text">RPM</span>
             </div>
-            <div class- "graph_title_right">
-              <span class="graph_title_control"></span>
+            <div class="graph_title_text" id="graph_title_right">
+              <span class="graph_title_text_right" id="playback_start">Play</span>
+              <span class="graph_title_text_right selected_playback_option" id="playback_stop">Pause</span>
+              <span class="graph_title_text_right selected_playback_option" id="playback_speed_normal">1x</span>
+              <span class="graph_title_text_right" id="playback_speed_half">.5x</span>
+              <span class="graph_title_text_right" id="playback_speed_quarter">.25x</span>
             </div>
           </div>
 
@@ -826,6 +830,6 @@
 
 
 </body>
-<script src="/web/js/redis_history_dashboard.js"></script>
+<script src="/web/js/history_dashboard.js"></script>
 
 </html>
